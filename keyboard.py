@@ -17,7 +17,7 @@ class Key(VMobject):
         self.key = key
         self.boundaries = RoundedRectangle(corner_radius=.08, width=width, height=height).set_xy(x, y)
         self.boundaries.set_stroke(width=3)
-        self.key_text = Text(key, **self.key_text_args).scale(self.scale_key)
+        self.key_text = Text(key, **self.key_text_args).scale(self.scale_key * width)
         self.key_text.move_to(self.boundaries)
         self.add(self.boundaries, self.key_text)
     def glow(self, color):
@@ -31,15 +31,23 @@ class Key(VMobject):
 
 class QwertyKB(Scene):
     def construct(self):
+        self.prepare()
+        self.add_screen()
+        self.write_on_screen()
+
+    def prepare(self):
         self.keys = VGroup()
         self.keys_dict = {}
         self.first = True
-        self.add_keys(list("QWERTYUIOP"), start_x=-6.5, start_y=1)
-        self.add_keys(list("ASDFGHJKL"), start_x=-6.0, start_y=-.1)
-        self.add_keys(list("ZXCVBNM"), start_x=-5.0, start_y=-1.2)
-        self.add_keys(list(" "), start_x=-1.5, start_y=-2.3, width=5, height=1)
-        self.write_sequence("ALI")
-        self.play(self.keys.scale, .5)
+        x = -3.5
+        y = -1
+        y_spacing = 0.85
+        self.add_keys(list("QWERTYUIOP"), start_x=x, start_y=y)
+        self.add_keys(list("ASDFGHJKL"), start_x=x+.5, start_y=y-y_spacing)
+        self.add_keys(list("ZXCVBNM"), start_x=x+1, start_y=y-2*y_spacing)
+        self.add_keys(list(" "), start_x=x+4, start_y=y-3*y_spacing, width=5)
+        # self.write_sequence("ALI")
+        # self.play(self.keys.scale, .5)
         # self.explode()
         # self.move_keys(list("AZERTYUIOP"), start_x=-6.5, start_y=1)
         # self.move_keys(list("QDSFGHJKLM"), start_x=-6.5, start_y=-.2)
@@ -47,7 +55,7 @@ class QwertyKB(Scene):
         # self.move_keys(list(" "), start_x=-0.5, start_y=-2.6)
 
     
-    def add_keys(self, keys, start_x=-6.5, start_y=1, width=1, height=1):
+    def add_keys(self, keys, start_x=-6.5, start_y=1, width=.7, height=.7):
         limit=.1
         j = 0
         animations = VGroup()
@@ -57,13 +65,42 @@ class QwertyKB(Scene):
             animations.add(ShowCreation(a))
             self.keys.add(a)
             self.keys_dict[i] = a
-            x += 1
+            x += width
             j += 1
-        if self.first:
-            self.play(LaggedStart(*animations))
-            self.first = False
-        else:
-            self.play(*animations)
+        self.play(LaggedStart(*animations))
+
+    def add_screen(self):
+        screen_width = 7
+        screen_height = 3.5
+        x_screen, y_screen = 0, 1.5
+        self.screen_rect = Rectangle(width=screen_width, height=screen_height)
+        self.screen_rect.set_fill(color=WHITE, opacity=1)
+        self.screen_rect.set_stroke(color=GREY, width=3)
+        self.screen_rect.set_xy(x_screen, y_screen)
+        self.screen_header = Rectangle(width=1.3, height=.4)
+        self.screen_header.set_fill(color=BLUE, opacity=.5)
+        self.screen_header.next_to(self.screen_rect, UP+LEFT, buff=0.03)
+        self.screen_header.shift(1.35*RIGHT)
+        self.title = Text("File1.txt", color=BLACK, font="Apercu-Mono").scale(.4)
+        self.title.move_to(self.screen_header)
+        self.screen = VGroup(self.screen_rect, self.screen_header, self.title)
+
+    def write_on_screen(self):
+        self.play(FadeInFrom(self.screen, 2 * RIGHT))
+        cursor = Text("|", color=BLACK, font="Apercu-Mono").scale(.4)
+        cursor.next_to(self.title, DOWN, buff=.5)
+        self.play(Write(cursor))
+        text="Just"
+        for i in text:
+            key = self.keys_dict[i.upper()]
+            t = Text(i, color=BLACK, font="Apercu-Mono").scale(.4)
+            t.next_to(cursor, RIGHT, buff=.02)
+            a = key.glow(RED)
+            self.play(Write(t), cursor.shift,.1 * RIGHT,a[0], run_time=.3)
+            self.play(a[1], run_time=.2)
+
+
+        
 
     def move_keys(self, keys, start_x, start_y):
         limit=.2
@@ -82,7 +119,7 @@ class QwertyKB(Scene):
         seq = sequence.upper()
         t = Text("", font="DDT W00 Regular").set_xy(-4, 2).scale(.3)
         for i in seq:
-            key = self.keys_dict[i]
+            key = self.keys_dict[i.upper()]
             a = key.glow(RED)
             if i == " ":
                 s = Text("_", font="DDT W00 Regular").set_fill(opacity=0)
@@ -171,7 +208,7 @@ class Test(ThreeDScene):
             self.play(Restore(arm), run_time=.5)
 
 
-class TestTypeWriter(ThreeDScene):
+class TypeWriter(ThreeDScene):
     CONFIG = {
         "text_kwargs": {
             "font": "RM Typerighter old Regular",
@@ -252,17 +289,21 @@ class TestTypeWriter(ThreeDScene):
         arm.save_state()
         text = Text(key, **self.text_kwargs).scale(.4).move_to(self.text_pos)
         self.play(arm.set_color, RED, run_time=.3)
-
+        self.add_sound(ASSESTS_PATH + "sounds/typewriter-key.wav")
         self.play(img.shift, .3 * DOWN,
                   self.cylinder.shift, .1 * LEFT,
                   Write(text),
-                  arm.rotate, 180 * DEGREES, Z_AXIS, {"about_point":arm.point}, run_time=.5)
-        self.play(Restore(img), Restore(arm),run_time=.5)
+                  arm.rotate, 180 * DEGREES, Z_AXIS, {"about_point":arm.point}, run_time=.1)
+        self.play(Restore(img), Restore(arm),run_time=.1)
         self.paper.add(text)
         self.text_pos = text.get_center()
 
     def write_word(self, word):
         for i in word:
             self.click_key(i)
-
+        self.paper.plot_depth=10
+        self.play(
+            self.paper.move_to, ORIGIN,
+            self.paper.scale, 2
+        )
 
