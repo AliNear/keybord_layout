@@ -3,6 +3,7 @@ import random
 import os
 
 ASSESTS_PATH = os.getcwd() + "/projects/keyboard_layout/assets/"
+
 class Key(VMobject):
     CONFIG = {
         "key_text_args": {
@@ -28,6 +29,27 @@ class Key(VMobject):
         animation = ApplyMethod(self.boundaries.set_fill, color, .8)
         return animation
 
+class FramedImage(ImageMobject):
+    CONFIG = {
+        "frame_kwargs": {
+            "color": BLUE,
+            "stroke_width": 3,
+        },
+        "title_kwargs": {
+            "font": "Century Gothic Bold",
+            "color": WHITE,
+        }
+    }
+
+    def __init__(self, filename, title, **kwargs):
+        ImageMobject.__init__(self, filename, **kwargs)
+        self.scale(.5)
+        width = self.get_width()
+        height = self.get_height()
+        frame = Rectangle(width=width, height=height, **self.frame_kwargs)
+        title_text = Text(title, **self.title_kwargs).scale(.5)
+        title_text.next_to(frame, UP, buff=.1)
+        self.add(frame,  title_text)
 
 class QwertyKB(Scene):
     def construct(self):
@@ -307,3 +329,42 @@ class TypeWriter(ThreeDScene):
             self.paper.scale, 2
         )
 
+
+class AxisScene(MovingCameraScene):
+    
+    def construct(self):
+        axis = Line(20 * LEFT, 5 * RIGHT, stroke_width=4)
+        ticks_coords = [0, -3.5, -6, -9]
+        ticks_texts = ["Now", "1970","1930", "1868"]
+        images = ["keyboard", "old_keyboard", "teletype", "typewriter"]
+        images = [i + ".jpg" for i in images]
+        titles = ["Current", "Electronic Keyboard", "Teletype", "Typewriter"]
+        axis.add_tip()
+        self.play(ShowCreation(axis))
+        ticks = VGroup()
+        texts = VGroup()
+        figures = Group()
+        for i in range(4):
+            start = np.array([ticks_coords[i], 0, 0])
+            tick = Line(start, start + .2 * UP, stroke_width=4)
+            text = Text(ticks_texts[i], font="Century Gothic Bold", color=BLACK).scale(.6)
+            img = FramedImage(ASSESTS_PATH + images[i], titles[i])
+            text.next_to(tick, DOWN, buff=.2)
+            img.next_to(tick, UP, buff=0.5)
+            ticks.add(tick)
+            texts.add(text)
+            figures.add(img)
+        
+        for i in range(4):
+            self.play(ShowCreation(ticks[i]), run_time=.3)
+            self.play(Write(texts[i]), run_time=.4)
+            self.play(FadeInFrom(figures[i], 3 * UP))
+
+        self.wait()
+
+        self.play(
+            self.camera_frame.set_height, 5)
+        self.play(
+            self.camera_frame.shift, 9 * LEFT, run_time=2, rate_func=linear
+        )
+        
