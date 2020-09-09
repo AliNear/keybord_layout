@@ -29,6 +29,100 @@ class Key(VMobject):
         animation = ApplyMethod(self.boundaries.set_fill, color, .8)
         return animation
 
+class Keyboard(VMobject):
+    """
+    A Keyboard class that draws a keys on the screen with a give layout
+    """
+    CONFIG = {
+        "start_x": -3.5,
+        "start_y": -1,
+        "spacing_y": .85,
+        "width_key": .7,
+        "height_key": .7,
+
+    }
+
+    def __init__(self, layout,**kwargs):
+        VMobject.__init__(self, **kwargs)
+        self.layout = layout
+        self.keys = VGroup()
+        self.keys_dict = {}
+        self.add_keys(layout)
+
+    def add_keys(self, layout):
+        x_spacings = [0, .5, 1, 4]
+        for r in range(len(layout)):
+            row = layout[r]
+            x = self.start_x + x_spacings[r]
+            y = self.start_y - r * self.spacing_y
+            limit=.1
+            j = 0
+            width = (int(r != 3)) * self.width_key + (r // 3) * 5 #Overdoing it :p
+            for i in row:
+                a = Key(i, x = x + j * limit, y=y, width=width, height=self.height_key)
+                self.keys.add(a)
+                self.keys_dict[i] = a
+                x += self.width_key
+                j += 1
+        self.add(self.keys)
+
+    def write_sequence(self, sequence, obj):
+        seq = sequence.upper()
+        for i in seq:
+            key = self.keys_dict[i.upper()]
+            a = key.glow(RED)
+            obj.play(a[0], run_time=.3)
+            obj.play(a[1], run_time=.1)
+    def move_keys(self, keys, start_x, start_y, scene):
+        limit=.1
+        j = 0
+        animations = VGroup()
+        x = start_x
+        for i in keys:
+            k = self.keys_dict[i]
+            position = np.array([x + j * limit, start_y, 0])
+            animations.add(ApplyMethod(k.move_to, position))
+            x += self.width_key
+            j += 1
+        scene.play(*animations)
+
+    def color_word(self, word, scene):
+        animations = VGroup()
+        for i in word.upper():
+            key = self.keys_dict[i]
+            animations.add(key.set_color(GREEN))
+        scene.play(LaggedStart(*animations, lag_ratio=.3))
+
+    def explode(self, scene):
+        animations = VGroup()
+        directions = [UP, DOWN, RIGHT, LEFT]
+        self.keys.save_state()
+        for i in self.keys:
+            x = np.random.randint(1, 5)
+            y = np.random.randint(1, 3)
+            r = np.random.rand()
+            v = x * random.choice(directions) + y * random.choice(directions)
+            animations.add(ApplyMethod(i.rotate, r))
+            animations.add(ApplyMethod(i.shift, v))
+        scene.play(*animations)
+
+    def rearrange_keys(self, layout, scene):
+        x_spacings = [0, .5, 1, 4]
+        for r in range(len(layout)):
+            row = layout[r]
+            x = self.start_x + x_spacings[r]
+            y = self.start_y - r * self.spacing_y
+            limit=.1
+            j = 0
+            width = (int(r != 3)) * self.width_key + (r // 3) * 5 #Overdoing it :p
+            self.move_keys(row, x, y, scene)
+ 
+
+
+
+
+       
+
 class FramedImage(ImageMobject):
     CONFIG = {
         "frame_kwargs": {
@@ -201,33 +295,33 @@ class TypeWriterArm(VMobject):
         self.add(self.head, self.body)
 
 
-class Test(ThreeDScene):
-    def construct(self):
+# class Test(ThreeDScene):
+#     def construct(self):
         
-        self.move_camera(phi=0, theta=-90 * DEGREES, distance=20)
-        t = -3 * PI / 4
-        center_x = 0
-        center_y = 2
-        r = 2
+#         self.move_camera(phi=0, theta=-90 * DEGREES, distance=20)
+#         t = -3 * PI / 4
+#         center_x = 0
+#         center_y = 2
+#         r = 2
         
-        arms = VGroup()
-        for i in range(21):
-            x = center_x + r * np.cos(t)
-            x_2 = center_x + r * 2 * np.cos(t)
-            y = center_y + r * np.sin(t)
-            y_2 = center_y + r * 2 * np.sin(t)
-            d = Dot(np.array([x, y, 0])).scale(.3)
-            f = Dot(np.array([x_2, y_2, 0]))
-            self.play(FadeIn(d))
-            arm = TypeWriterArm(d, f)
-            arms.add(arm)
-            t += PI/40
+#         arms = VGroup()
+#         for i in range(21):
+#             x = center_x + r * np.cos(t)
+#             x_2 = center_x + r * 2 * np.cos(t)
+#             y = center_y + r * np.sin(t)
+#             y_2 = center_y + r * 2 * np.sin(t)
+#             d = Dot(np.array([x, y, 0])).scale(.3)
+#             f = Dot(np.array([x_2, y_2, 0]))
+#             self.play(FadeIn(d))
+#             arm = TypeWriterArm(d, f)
+#             arms.add(arm)
+#             t += PI/40
         
-        self.play(ShowCreation(arms))
-        for arm in arms:
-            arm.save_state()
-            self.play(arm.rotate, 180 * DEGREES, Z_AXIS, {"about_point":arm.point}, run_time=.5)
-            self.play(Restore(arm), run_time=.5)
+#         self.play(ShowCreation(arms))
+#         for arm in arms:
+#             arm.save_state()
+#             self.play(arm.rotate, 180 * DEGREES, Z_AXIS, {"about_point":arm.point}, run_time=.5)
+#             self.play(Restore(arm), run_time=.5)
 
 
 class TypeWriter(ThreeDScene):
@@ -368,3 +462,67 @@ class AxisScene(MovingCameraScene):
             self.camera_frame.shift, 9 * LEFT, run_time=2, rate_func=linear
         )
         
+
+
+class PartOne(Scene):
+    """
+    In this part we will introduce the qwerty keyboard, and explain some parts
+    """
+    CONFIG = {
+        "text_kwargs": {
+            "font": "Century Gothic Bold",
+            "color": WHITE,
+        }
+ 
+    }
+
+    def construct(self):
+        self.prepare()
+        self.introduction()
+        self.questioning()
+
+    def prepare(self):
+        layout = [list("QWERTYUIOP"), list("ASDFGHJKL"),
+                  list("ZXCVBNM"), list(" ")]
+        self.keyboard = Keyboard(layout)
+
+    def introduction(self):
+        self.play(ShowCreation(self.keyboard))
+        text = Text("The QWERTY Keyboard", **self.text_kwargs).scale(1.0)
+        text.set_y(3.5)
+        self.play(FadeInFrom(text, 2 * UP))
+        self.play(self.keyboard.shift, 3 * LEFT)
+        row_names = ["Upper row", "Middle (Home)\nrow", "Lower row"]
+        row_texts = VGroup()
+        arrows = VGroup()
+        x = 2.5
+        y_start = -1
+        for i in row_names:
+            arrow = Line(RIGHT, LEFT, color=WHITE, stroke_width=4)
+            arrow.set_xy(x, y_start)
+            arrow.add_tip()
+            row_text = Text(i, **self.text_kwargs).scale(.8)
+            row_text.next_to(arrow, RIGHT, buff=.2)
+            self.play(ShowCreation(arrow))
+            self.play(FadeInFrom(row_text, 2 * RIGHT))
+            row_texts.add(row_text)
+            arrows.add(arrow)
+            y_start -= self.keyboard.spacing_y
+
+        self.wait()
+        self.play(FadeOut(arrows), FadeOut(row_texts))
+        self.play(self.keyboard.shift, 3 * RIGHT)
+
+        row_names = ["Upper row", "Middle (Home)\nrow", "Lower row"]
+
+    def questioning(self):
+        text = Text("But why this particular order?", **self.text_kwargs).scale(.8)
+        text.set_y(1)
+        self.play(Write(text))
+        new_text = Text("Why not like this?", **self.text_kwargs).scale(.8)
+        new_text.set_y(1)
+        self.play(Transform(text, new_text))
+        new_layout = [list("ABCDEFGHIJ"), list("KLMNOPQRS"),
+                      list("TUVWXYZ"), list(" ")]
+        self.keyboard.explode(self)
+        self.keyboard.rearrange_keys(new_layout, self)
