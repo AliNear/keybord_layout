@@ -1,4 +1,5 @@
 from manimlib.imports import *
+from projects.keyboard_layout.consts import *
 import random
 import os
 
@@ -29,6 +30,18 @@ class Key(VMobject):
         animation = ApplyMethod(self.boundaries.set_fill, color, .8)
         return animation
 
+class KeyImg(Mobject):
+    CONFIG = {
+        "scale_factor": .3,
+        "key_path": ASSESTS_PATH + "normal_keys/",
+    }
+
+    def __init__(self, key, x=0, y=0, **kwargs):
+        Mobject.__init__(self, **kwargs)
+        self.key_img = ImageMobject(self.key_path + key + ".png").scale(self.scale_factor)
+        self.key_img.set_xy(x,y)
+        self.add(self.key_img)
+
 class Keyboard(VMobject):
     """
     A Keyboard class that draws a keys on the screen with a give layout
@@ -36,7 +49,7 @@ class Keyboard(VMobject):
     CONFIG = {
         "start_x": -3.5,
         "start_y": -1,
-        "spacing_y": .85,
+        "spacing_y": .65,
         "width_key": .7,
         "height_key": .7,
 
@@ -45,25 +58,30 @@ class Keyboard(VMobject):
     def __init__(self, layout,**kwargs):
         VMobject.__init__(self, **kwargs)
         self.layout = layout
-        self.keys = VGroup()
+        self.keys = Group()
         self.keys_dict = {}
         self.add_keys(layout)
 
     def add_keys(self, layout):
-        x_spacings = [0, .5, 1, 4]
         for r in range(len(layout)):
             row = layout[r]
-            x = self.start_x + x_spacings[r]
-            y = self.start_y - r * self.spacing_y
-            limit=.1
-            j = 0
-            width = (int(r != 3)) * self.width_key + (r // 3) * 5 #Overdoing it :p
+            row_group = Group()
             for i in row:
-                a = Key(i, x = x + j * limit, y=y, width=width, height=self.height_key)
-                self.keys.add(a)
+                a = KeyImg(i)
+                row_group.add(a)
                 self.keys_dict[i] = a
-                x += self.width_key
-                j += 1
+            row_group.set_x(-4)
+            row_group.arrange_submobjects(RIGHT, False, False, buff=.08)
+            if r > 0:
+                row_group.next_to(self.keys[r-1], DOWN, buff=.1, aligned_edge=LEFT)
+            self.keys.add(row_group)
+            self.add(row_group)
+
+        # self.background = SurroundingRectangle(Group(*self.keys), 
+                                               # fill_color=WHITE,
+                                               # fill_opacity=1,
+                                               # stroke_width=0)
+        # self.add(self.background)
         self.add(self.keys)
 
     def write_sequence(self, sequence, obj):
@@ -82,7 +100,7 @@ class Keyboard(VMobject):
             k = self.keys_dict[i]
             position = np.array([x + j * limit, start_y, 0])
             animations.add(ApplyMethod(k.move_to, position))
-            x += self.width_key
+            x += .65
             j += 1
         scene.play(*animations)
 
@@ -97,25 +115,41 @@ class Keyboard(VMobject):
         animations = VGroup()
         directions = [UP, DOWN, RIGHT, LEFT]
         self.keys.save_state()
-        for i in self.keys:
+        for i in self.keys_dict.keys():
+            key = self.keys_dict[i]
+            key.save_state()
             x = np.random.randint(1, 5)
             y = np.random.randint(1, 3)
             r = np.random.rand()
             v = x * random.choice(directions) + y * random.choice(directions)
-            animations.add(ApplyMethod(i.rotate, r))
-            animations.add(ApplyMethod(i.shift, v))
+            animations.add(ApplyMethod(key.rotate, r))
+            animations.add(ApplyMethod(key.shift, v))
         scene.play(*animations)
 
     def rearrange_keys(self, layout, scene):
-        x_spacings = [0, .5, 1, 4]
+        x = -4
+        groups = Group()
         for r in range(len(layout)):
             row = layout[r]
-            x = self.start_x + x_spacings[r]
-            y = self.start_y - r * self.spacing_y
-            limit=.1
-            j = 0
-            width = (int(r != 3)) * self.width_key + (r // 3) * 5 #Overdoing it :p
-            self.move_keys(row, x, y, scene)
+            key_group = Group()
+            for i in row:
+                key_group.add(self.keys_dict[i.lower()])
+            if r == 0:
+                # key_group.set_x(x)
+                pass
+            scene.play(ApplyMethod(key_group.arrange_submobjects,
+                               RIGHT, False, False, {"buff":.08}))
+            if r > 0 :
+                scene.play(ApplyMethod(key_group.arrange_submobjects,
+                                      RIGHT, False, False, {"buff":.08}))
+
+                scene.play(ApplyMethod(key_group.next_to,
+                                    groups[r-1], DOWN,  aligned_edge=LEFT, buff=.1,
+                                    ))
+                    
+            groups.add(key_group)
+ 
+
  
 
 
@@ -294,37 +328,8 @@ class TypeWriterArm(VMobject):
         self.point = self.head.points[0]
         self.add(self.head, self.body)
 
-
-# class Test(ThreeDScene):
-#     def construct(self):
-        
-#         self.move_camera(phi=0, theta=-90 * DEGREES, distance=20)
-#         t = -3 * PI / 4
-#         center_x = 0
-#         center_y = 2
-#         r = 2
-        
-#         arms = VGroup()
-#         for i in range(21):
-#             x = center_x + r * np.cos(t)
-#             x_2 = center_x + r * 2 * np.cos(t)
-#             y = center_y + r * np.sin(t)
-#             y_2 = center_y + r * 2 * np.sin(t)
-#             d = Dot(np.array([x, y, 0])).scale(.3)
-#             f = Dot(np.array([x_2, y_2, 0]))
-#             self.play(FadeIn(d))
-#             arm = TypeWriterArm(d, f)
-#             arms.add(arm)
-#             t += PI/40
-        
-#         self.play(ShowCreation(arms))
-#         for arm in arms:
-#             arm.save_state()
-#             self.play(arm.rotate, 180 * DEGREES, Z_AXIS, {"about_point":arm.point}, run_time=.5)
-#             self.play(Restore(arm), run_time=.5)
-
-
 class TypeWriter(ThreeDScene):
+
     CONFIG = {
         "text_kwargs": {
             "font": "RM Typerighter old Regular",
@@ -482,8 +487,7 @@ class PartOne(Scene):
         self.questioning()
 
     def prepare(self):
-        layout = [list("QWERTYUIOP"), list("ASDFGHJKL"),
-                  list("ZXCVBNM"), list(" ")]
+        layout = QWERTY_LAYOUT
         self.keyboard = Keyboard(layout)
 
     def introduction(self):
@@ -522,7 +526,50 @@ class PartOne(Scene):
         new_text = Text("Why not like this?", **self.text_kwargs).scale(.8)
         new_text.set_y(1)
         self.play(Transform(text, new_text))
-        new_layout = [list("ABCDEFGHIJ"), list("KLMNOPQRS"),
-                      list("TUVWXYZ"), list(" ")]
         self.keyboard.explode(self)
-        self.keyboard.rearrange_keys(new_layout, self)
+        self.keyboard.rearrange_keys(ALPHA_LAYOUT, self)
+        
+
+class Test(Scene):
+    def construct(self):
+        keys = ["tab", *list("qwertyuiop"), "lbrace", "rbrace", "or"]
+        keys_2 = ["caps", *list("asdfghjkl"), "colon", "quote", "enter"]
+        keys_3 = ["lshift", *list("zxcvbnm"),  "less", "great", "exl", "rshift"]
+        keys_4 = ["void", "void", "void", "void", "space", "void", "void"]
+        imgs = Group()
+        imgs_2 = Group()
+        imgs_3 = Group()
+        imgs_4 = Group()
+        x_start = -4
+        for i in keys:
+            k = KeyImg(i)
+            imgs.add(k)
+
+        for i in keys_2:
+            imgs_2.add(KeyImg(i))
+
+        for i in keys_3:
+            imgs_3.add(KeyImg(i))
+        for i in keys_4:
+            imgs_4.add(KeyImg(i))
+ 
+        # rect = SurroundingRectangle(imgs, fill_color=WHITE, fill_opacity=1, stroke_width=0)
+
+        # self.add(rect)
+        imgs.set_x(-4)
+        imgs.arrange_submobjects(RIGHT, False, False, buff=.08)
+        imgs_2.arrange_submobjects(RIGHT, False, False, buff=.08)
+        imgs_3.arrange_submobjects(RIGHT, False, False, buff=.08)
+        imgs_4.arrange_submobjects(RIGHT, False, False, buff=.08)
+        imgs_2.next_to(imgs, DOWN, buff=.1, aligned_edge=LEFT)
+        imgs_3.next_to(imgs_2, DOWN, buff=.1, aligned_edge=LEFT)
+        imgs_4.next_to(imgs_3, DOWN, buff=.1, aligned_edge=LEFT)
+        self.play(ShowCreation(imgs))
+        self.play(ShowCreation(imgs_2))
+        self.play(ShowCreation(imgs_3))
+        self.play(ShowCreation(imgs_4))
+
+        for i in imgs:
+            i.save_state()
+            self.play(i.shift, 2 * RIGHT, run_time=.1)
+            self.play(Restore(i))
