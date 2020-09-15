@@ -5,6 +5,40 @@ import os
 
 ASSESTS_PATH = os.getcwd() + "/projects/keyboard_layout/assets/"
 
+def get_lower_rect(obj, color="#41BC27"):
+    p1 = obj.get_corner(DL) + .008 * RIGHT
+    p2 = obj.get_corner(DR) - .008 * RIGHT
+    p3 = p1 + .06 * UP
+    p4 = p2 + .06 * UP
+    return Polygon(p1, p2, p4, p3, fill_color=color, fill_opacity=1, stroke_width=0)
+
+class PointObject(VMobject):
+    """Creates a pointing line with an inflection.
+    Parameters
+    ----------
+    point: The point which the line points to
+    direction_x: x direction of pointing (RIGHT or LEFT)
+    direction_y: y direction of pointing (UP or DOWN)
+
+    """
+    CONFIG = {
+        "line_kwargs": {
+            "color": WHITE,
+            "stroke_width": 5
+        }
+    }
+    def __init__(self, point, direction_x=RIGHT, direction_y=UP, length=2, **kwargs):
+        VMobject.__init__(self, **kwargs)
+        start = point
+        x_amount = length / 3
+        y_amount = x_amount * 2
+        inflection = y_amount * direction_y + x_amount * direction_x
+        end = start + inflection
+        self.oblic = Line(start, end, **self.line_kwargs)
+        self.straight = Line(end, end + length  * direction_x, **self.line_kwargs)
+        self.add(self.oblic, self.straight)
+
+
 class Key(VMobject):
     CONFIG = {
         "key_text_args": {
@@ -84,13 +118,13 @@ class Keyboard(VMobject):
         # self.add(self.background)
         self.add(self.keys)
 
-    def write_sequence(self, sequence, obj):
+    def write_sequence(self, sequence, scene):
         seq = sequence.upper()
         for i in seq:
-            key = self.keys_dict[i.upper()]
-            a = key.glow(RED)
-            obj.play(a[0], run_time=.3)
-            obj.play(a[1], run_time=.1)
+            key = self.keys_dict[i.lower()]
+            rect = get_lower_rect(key, color=RED) 
+            animations = Succession(FadeIn(rect), FadeOut(rect))
+            scene.play(animations, run_time=.5)
     def move_keys(self, keys, start_x, start_y, scene):
         limit=.1
         j = 0
@@ -134,18 +168,18 @@ class Keyboard(VMobject):
             key_group = Group()
             for i in row:
                 key_group.add(self.keys_dict[i.lower()])
+            key_group.set_x(2.8)
             if r == 0:
-                # key_group.set_x(x)
-                pass
-            scene.play(ApplyMethod(key_group.arrange_submobjects,
-                               RIGHT, False, False, {"buff":.08}))
-            if r > 0 :
                 scene.play(ApplyMethod(key_group.arrange_submobjects,
-                                      RIGHT, False, False, {"buff":.08}))
+                               RIGHT, False, False, {"buff":.08}))
+            else:
+                key_group.set_x(-2)
+                scene.play(ApplyMethod(key_group.arrange_submobjects,
+                                      RIGHT, False, False, {"buff":.08}), run_time=.4)
 
                 scene.play(ApplyMethod(key_group.next_to,
-                                    groups[r-1], DOWN,  aligned_edge=LEFT, buff=.1,
-                                    ))
+                                       groups[r-1], DOWN,{"buff":.1}, aligned_edge=LEFT, 
+                                    ), run_time=.3)
                     
             groups.add(key_group)
  
@@ -475,8 +509,8 @@ class PartOne(Scene):
     """
     CONFIG = {
         "text_kwargs": {
-            "font": "Century Gothic Bold",
-            "color": WHITE,
+            "font": "SF Pro Display Regular",
+            "color": BLACK,
         }
  
     }
@@ -495,29 +529,30 @@ class PartOne(Scene):
         text = Text("The QWERTY Keyboard", **self.text_kwargs).scale(1.0)
         text.set_y(3.5)
         self.play(FadeInFrom(text, 2 * UP))
-        self.play(self.keyboard.shift, 3 * LEFT)
-        row_names = ["Upper row", "Middle (Home)\nrow", "Lower row"]
+        self.play(self.keyboard.shift, 2.5 * LEFT)
+        row_names = ["Upper row", "Home row", "Lower row"]
         row_texts = VGroup()
         arrows = VGroup()
         x = 2.5
         y_start = -1
+        j = 0
         for i in row_names:
-            arrow = Line(RIGHT, LEFT, color=WHITE, stroke_width=4)
-            arrow.set_xy(x, y_start)
-            arrow.add_tip()
+            point = self.keyboard.keys[j].get_edge_center(RIGHT)
+            arrow = PointObject(point)
             row_text = Text(i, **self.text_kwargs).scale(.8)
-            row_text.next_to(arrow, RIGHT, buff=.2)
+            row_text.next_to(arrow.straight, UP, buff=.2)
             self.play(ShowCreation(arrow))
             self.play(FadeInFrom(row_text, 2 * RIGHT))
             row_texts.add(row_text)
             arrows.add(arrow)
             y_start -= self.keyboard.spacing_y
+            j += 1
 
         self.wait()
         self.play(FadeOut(arrows), FadeOut(row_texts))
-        self.play(self.keyboard.shift, 3 * RIGHT)
+        self.play(self.keyboard.shift, 2.5 * RIGHT)
+        self.keyboard.write_sequence("ALI", self)
 
-        row_names = ["Upper row", "Middle (Home)\nrow", "Lower row"]
 
     def questioning(self):
         text = Text("But why this particular order?", **self.text_kwargs).scale(.8)
@@ -528,48 +563,18 @@ class PartOne(Scene):
         self.play(Transform(text, new_text))
         self.keyboard.explode(self)
         self.keyboard.rearrange_keys(ALPHA_LAYOUT, self)
+        self.wait()
         
 
 class Test(Scene):
     def construct(self):
-        keys = ["tab", *list("qwertyuiop"), "lbrace", "rbrace", "or"]
-        keys_2 = ["caps", *list("asdfghjkl"), "colon", "quote", "enter"]
-        keys_3 = ["lshift", *list("zxcvbnm"),  "less", "great", "exl", "rshift"]
-        keys_4 = ["void", "void", "void", "void", "space", "void", "void"]
-        imgs = Group()
-        imgs_2 = Group()
-        imgs_3 = Group()
-        imgs_4 = Group()
-        x_start = -4
-        for i in keys:
-            k = KeyImg(i)
-            imgs.add(k)
+        e = KeyImg("e")
+        p1 = e.get_corner(DL) + .008 * RIGHT
+        p2 = e.get_corner(DR) - .008 * RIGHT
+        p3 = p1 + .06 * UP
+        p4 = p2 + .06 * UP
+        color = "#41BC27"
+        rect = Polygon(p1, p2, p4, p3, fill_color=RED, fill_opacity=1, stroke_width=0)
+        self.play(FadeIn(e))
+        self.play(FadeIn(rect))
 
-        for i in keys_2:
-            imgs_2.add(KeyImg(i))
-
-        for i in keys_3:
-            imgs_3.add(KeyImg(i))
-        for i in keys_4:
-            imgs_4.add(KeyImg(i))
- 
-        # rect = SurroundingRectangle(imgs, fill_color=WHITE, fill_opacity=1, stroke_width=0)
-
-        # self.add(rect)
-        imgs.set_x(-4)
-        imgs.arrange_submobjects(RIGHT, False, False, buff=.08)
-        imgs_2.arrange_submobjects(RIGHT, False, False, buff=.08)
-        imgs_3.arrange_submobjects(RIGHT, False, False, buff=.08)
-        imgs_4.arrange_submobjects(RIGHT, False, False, buff=.08)
-        imgs_2.next_to(imgs, DOWN, buff=.1, aligned_edge=LEFT)
-        imgs_3.next_to(imgs_2, DOWN, buff=.1, aligned_edge=LEFT)
-        imgs_4.next_to(imgs_3, DOWN, buff=.1, aligned_edge=LEFT)
-        self.play(ShowCreation(imgs))
-        self.play(ShowCreation(imgs_2))
-        self.play(ShowCreation(imgs_3))
-        self.play(ShowCreation(imgs_4))
-
-        for i in imgs:
-            i.save_state()
-            self.play(i.shift, 2 * RIGHT, run_time=.1)
-            self.play(Restore(i))
