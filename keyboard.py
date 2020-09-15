@@ -190,7 +190,7 @@ class Keyboard(VMobject):
                     animations_func_keys.add(Restore(self.keys_dict[j]))
 
         scene.play(*animations_func_keys)
-        self.wait(1)
+        scene.wait(1)
         scene.play(*animations_alpha_keys)
                 
 
