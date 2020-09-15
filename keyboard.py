@@ -156,18 +156,21 @@ class Keyboard(VMobject):
 
     def explode(self, scene):
         animations = VGroup()
-        directions = [UP, DOWN, RIGHT, LEFT]
+        directions = [UL, UP, UR, RIGHT, DR, DOWN, DL, LEFT]
         self.keys.save_state()
+        dir_index = 0
         for i in self.keys_dict.keys():
             key = self.keys_dict[i]
             key.save_state()
             if i in ALPHABET:
                 #Needed for rearrange_keys
                 key.old_pos = key.get_center()
-            x = np.random.randint(1, 5)
-            y = np.random.randint(1, 3)
-            v = x * random.choice(directions) + y * random.choice(directions)
+            x = np.random.randint(1, 4)
+            w = x * directions[dir_index % 8]
+            s = .3
+            v = key.get_x() * s * RIGHT + key.get_y() * s * UP
             animations.add(ApplyMethod(key.shift, v))
+            dir_index += 1
         scene.play(*animations)
 
     def rearrange_keys(self, layout, scene):
@@ -189,9 +192,9 @@ class Keyboard(VMobject):
                 else:
                     animations_func_keys.add(Restore(self.keys_dict[j]))
 
-        scene.play(*animations_func_keys)
+        scene.play(LaggedStart(*animations_alpha_keys))
         scene.wait(1)
-        scene.play(*animations_alpha_keys)
+        scene.play(*animations_func_keys)
                 
 
        
