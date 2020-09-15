@@ -4,6 +4,7 @@ import random
 import os
 
 ASSESTS_PATH = os.getcwd() + "/projects/keyboard_layout/assets/"
+ALPHABET = "qwertyuiopasdfghjklzxcvbnm"
 
 def get_lower_rect(obj, color="#41BC27"):
     p1 = obj.get_corner(DL) + .008 * RIGHT
@@ -73,6 +74,7 @@ class KeyImg(Mobject):
     def __init__(self, key, x=0, y=0, **kwargs):
         Mobject.__init__(self, **kwargs)
         self.key_img = ImageMobject(self.key_path + key + ".png").scale(self.scale_factor)
+        self.key_letter = key
         self.key_img.set_xy(x,y)
         self.add(self.key_img)
 
@@ -94,6 +96,8 @@ class Keyboard(VMobject):
         self.layout = layout
         self.keys = Group()
         self.keys_dict = {}
+        self.alpha_keys = []
+        self.func_keys = []
         self.add_keys(layout)
 
     def add_keys(self, layout):
@@ -104,6 +108,11 @@ class Keyboard(VMobject):
                 a = KeyImg(i)
                 row_group.add(a)
                 self.keys_dict[i] = a
+                if i in ALPHABET:
+                    self.alpha_keys.append(a)
+                else:
+                    self.func_keys.append(a)
+
             row_group.set_x(-4)
             row_group.arrange_submobjects(RIGHT, False, False, buff=.08)
             if r > 0:
@@ -152,42 +161,38 @@ class Keyboard(VMobject):
         for i in self.keys_dict.keys():
             key = self.keys_dict[i]
             key.save_state()
+            if i in ALPHABET:
+                #Needed for rearrange_keys
+                key.old_pos = key.get_center()
             x = np.random.randint(1, 5)
             y = np.random.randint(1, 3)
-            r = np.random.rand()
             v = x * random.choice(directions) + y * random.choice(directions)
-            animations.add(ApplyMethod(key.rotate, r))
             animations.add(ApplyMethod(key.shift, v))
         scene.play(*animations)
 
     def rearrange_keys(self, layout, scene):
-        x = -4
-        groups = Group()
-        for r in range(len(layout)):
-            row = layout[r]
-            key_group = Group()
-            for i in row:
-                key_group.add(self.keys_dict[i.lower()])
-            key_group.set_x(2.8)
-            if r == 0:
-                scene.play(ApplyMethod(key_group.arrange_submobjects,
-                               RIGHT, False, False, {"buff":.08}))
-            else:
-                key_group.set_x(-2)
-                scene.play(ApplyMethod(key_group.arrange_submobjects,
-                                      RIGHT, False, False, {"buff":.08}), run_time=.4)
+        """
+        In this animation we rearrange keys given a layout, we use previous 
+        key positions to make it easier to implement
+        """
+        alpha_keys = []
+        animations_alpha_keys = Group()
+        animations_func_keys = Group()
+        t = 0
+        for i in layout:
+            for j in i:
+                if j in ALPHABET:
+                    key = self.alpha_keys[t]
+                    new_key = self.keys_dict[j]
+                    animations_alpha_keys.add(ApplyMethod(new_key.move_to, key.old_pos))
+                    t += 1
+                else:
+                    animations_func_keys.add(Restore(self.keys_dict[j]))
 
-                scene.play(ApplyMethod(key_group.next_to,
-                                       groups[r-1], DOWN,{"buff":.1}, aligned_edge=LEFT, 
-                                    ), run_time=.3)
-                    
-            groups.add(key_group)
- 
-
- 
-
-
-
+        scene.play(*animations_func_keys)
+        self.wait(1)
+        scene.play(*animations_alpha_keys)
+                
 
        
 
@@ -230,14 +235,6 @@ class QwertyKB(Scene):
         self.add_keys(list("ASDFGHJKL"), start_x=x+.5, start_y=y-y_spacing)
         self.add_keys(list("ZXCVBNM"), start_x=x+1, start_y=y-2*y_spacing)
         self.add_keys(list(" "), start_x=x+4, start_y=y-3*y_spacing, width=5)
-        # self.write_sequence("ALI")
-        # self.play(self.keys.scale, .5)
-        # self.explode()
-        # self.move_keys(list("AZERTYUIOP"), start_x=-6.5, start_y=1)
-        # self.move_keys(list("QDSFGHJKLM"), start_x=-6.5, start_y=-.2)
-        # self.move_keys(list("WXCVBN"), start_x=-4.5, start_y=-1.4)
-        # self.move_keys(list(" "), start_x=-0.5, start_y=-2.6)
-
     
     def add_keys(self, keys, start_x=-6.5, start_y=1, width=.7, height=.7):
         limit=.1
@@ -569,12 +566,4 @@ class PartOne(Scene):
 class Test(Scene):
     def construct(self):
         e = KeyImg("e")
-        p1 = e.get_corner(DL) + .008 * RIGHT
-        p2 = e.get_corner(DR) - .008 * RIGHT
-        p3 = p1 + .06 * UP
-        p4 = p2 + .06 * UP
-        color = "#41BC27"
-        rect = Polygon(p1, p2, p4, p3, fill_color=RED, fill_opacity=1, stroke_width=0)
-        self.play(FadeIn(e))
-        self.play(FadeIn(rect))
 
