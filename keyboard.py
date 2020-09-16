@@ -566,7 +566,47 @@ class PartOne(Scene):
         self.wait()
         
 
+class PartFour(Scene):
+    """
+    In this part we will type a list of words and show that qwerty 
+    layout isn't that great
+    """
+    CONFIG = {
+        "text_kwargs": {
+            "font": "SF Pro Display Regular",
+            "color": BLACK,
+        },
+    }
+
+    def construct(self):
+        self.prepare()
+        self.add_screen()
+        self.type_words()
+
+    def prepare(self):
+        self.keyboard = Keyboard(QWERTY_LAYOUT).set_y(-1)
+        self.screen = ImageMobject(ASSESTS_PATH + "computer.png").scale(2)
+        self.screen.set_y(1)
+        self.editor = ImageMobject(ASSESTS_PATH + "editor.png")
+        self.editor.move_to(self.screen)
+        self.editor.shift((.5 * UP))
+
+    def add_screen(self):
+        self.play(FadeInFrom(self.keyboard, 2 * DOWN), run_time=.6)
+        self.play(FadeInFrom(self.screen, 2 * UP))
+        self.play(GrowFromCenter(self.editor), run_time=.5)
+        self.wait()
+
+    def type_words(self):
+        pass
+
 class Test(Scene):
     def construct(self):
-        e = KeyImg("e")
+        screen = ImageMobject(ASSESTS_PATH + "computer.png").scale(2)
+        e = ImageMobject(ASSESTS_PATH + "editor.png")
+        self.play(FadeInFrom(screen, 3 * UP))
+        e.move_to(screen)
+        e.shift(.5 * UP)
+        self.play(GrowFromCenter(e), run_time=.5)
+        self.wait()
 
