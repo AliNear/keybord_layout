@@ -627,7 +627,7 @@ class PartFour(Scene):
         words_title.move_to(words_pos).shift(2 * LEFT + .4 * DOWN)
         self.play(GrowFromCenter(words_title))
         
-        words_list = ["Read", "Keyboard", "The", "Winter", "Anyone"]
+        words_list = ["read", "keyboard", "the", "winter", "anyone"]
         texts_obj = VGroup(*[Text("- " + i, **self.text_kwargs).scale(.6) for i in words_list])
         texts_obj.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT)
         texts_obj.next_to(words_title, DOWN, buff=.4, aligned_edge=LEFT)
