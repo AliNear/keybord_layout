@@ -6,6 +6,11 @@ import os
 ASSESTS_PATH = os.getcwd() + "/projects/keyboard_layout/assets/"
 ALPHABET = "qwertyuiopasdfghjklzxcvbnm"
 
+def get_cross(obj, color=BLACK):
+    cross = Line(ORIGIN, RIGHT, color=color).scale(obj.get_width() + .2)
+    cross.move_to(obj)
+    return cross
+
 def get_lower_rect(obj, color="#41BC27"):
     p1 = obj.get_corner(DL) + .008 * RIGHT
     p2 = obj.get_corner(DR) - .008 * RIGHT
@@ -91,9 +96,12 @@ class Keyboard(VMobject):
 
     }
 
-    def __init__(self, layout,**kwargs):
+    def __init__(self, layout, key_scale=.3, **kwargs):
         VMobject.__init__(self, **kwargs)
         self.layout = layout
+        self.key_scale = key_scale
+        self.buffer = int(key_scale == .3) * .08 + int(key_scale != .3) * .05
+        self.buffer_line = int(key_scale == .3) * .1 + int(key_scale != .3) * .08
         self.keys = Group()
         self.keys_dict = {}
         self.alpha_keys = []
@@ -105,7 +113,7 @@ class Keyboard(VMobject):
             row = layout[r]
             row_group = Group()
             for i in row:
-                a = KeyImg(i)
+                a = KeyImg(i, scale_factor=self.key_scale)
                 row_group.add(a)
                 self.keys_dict[i] = a
                 if i in ALPHABET:
@@ -114,26 +122,33 @@ class Keyboard(VMobject):
                     self.func_keys.append(a)
 
             row_group.set_x(-4)
-            row_group.arrange_submobjects(RIGHT, False, False, buff=.08)
+            row_group.arrange_submobjects(RIGHT, True, True, buff=self.buffer)
             if r > 0:
-                row_group.next_to(self.keys[r-1], DOWN, buff=.1, aligned_edge=LEFT)
+                row_group.next_to(self.keys[r-1], DOWN, buff=self.buffer_line, aligned_edge=LEFT)
             self.keys.add(row_group)
             self.add(row_group)
 
-        # self.background = SurroundingRectangle(Group(*self.keys), 
-                                               # fill_color=WHITE,
-                                               # fill_opacity=1,
-                                               # stroke_width=0)
-        # self.add(self.background)
+        self.background = SurroundingRectangle(Group(*self.keys), 
+                                               fill_color=WHITE,
+                                               fill_opacity=1,
+                                               stroke_width=2,
+                                               stroke_color="#CFD2DA"
+                                               )
+        self.background.scale(.97)
+        self.add(self.background)
         self.add(self.keys)
 
-    def write_sequence(self, sequence, scene):
+    def write_sequence(self, sequence, scene=None):
         seq = sequence.upper()
         for i in seq:
             key = self.keys_dict[i.lower()]
             rect = get_lower_rect(key, color=RED) 
-            animations = Succession(FadeIn(rect), FadeOut(rect))
-            scene.play(animations, run_time=.5)
+            animation = (FadeIn(rect), FadeOut(rect))
+            # animation.run_time = .5
+            if scene is None:
+                yield animation
+            else:
+                scene.play(animation, run_time=.5)
     def move_keys(self, keys, start_x, start_y, scene):
         limit=.1
         j = 0
@@ -576,6 +591,14 @@ class PartFour(Scene):
             "font": "SF Pro Display Regular",
             "color": BLACK,
         },
+        "title_kwargs": {
+            "font": "AvenirNextLTPro-Bold",
+            "color": BLACK,
+        },
+        "editor_text_kwargs": {
+            "font": "SF Pro Display Regular",
+            "color": WHITE,
+        }
     }
 
     def construct(self):
@@ -584,29 +607,78 @@ class PartFour(Scene):
         self.type_words()
 
     def prepare(self):
-        self.keyboard = Keyboard(QWERTY_LAYOUT).set_y(-1)
+        self.keyboard = Keyboard(QWERTY_LAYOUT, key_scale=.2).shift(DOWN)
         self.screen = ImageMobject(ASSESTS_PATH + "computer.png").scale(2)
-        self.screen.set_y(1)
+        self.screen.set_y(2)
         self.editor = ImageMobject(ASSESTS_PATH + "editor.png")
         self.editor.move_to(self.screen)
         self.editor.shift((.5 * UP))
 
     def add_screen(self):
-        self.play(FadeInFrom(self.keyboard, 2 * DOWN), run_time=.6)
+        # self.play(FadeInFrom(self.keyboard, 2 * DOWN), run_time=.6)
+        self.add(self.keyboard)
         self.play(FadeInFrom(self.screen, 2 * UP))
         self.play(GrowFromCenter(self.editor), run_time=.5)
         self.wait()
 
     def type_words(self):
-        pass
+        words_title = Text("Words", **self.title_kwargs).scale(.8)
+        words_pos = self.screen.get_corner(UL)
+        words_title.move_to(words_pos).shift(2 * LEFT + .4 * DOWN)
+        self.play(GrowFromCenter(words_title))
+        
+        words_list = ["Read", "Keyboard", "The", "Winter", "Anyone"]
+        texts_obj = VGroup(*[Text("- " + i, **self.text_kwargs).scale(.6) for i in words_list])
+        texts_obj.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT)
+        texts_obj.next_to(words_title, DOWN, buff=.4, aligned_edge=LEFT)
+        animations = LaggedStart(*[FadeIn(i) for i in texts_obj], lag_ratio=.5)
+        self.play(animations)
+        
+        pos = self.editor.get_corner(UL) + .2 * DR
+        texts_editor = VGroup(*[Text(i, **self.editor_text_kwargs).scale(.3) for i in words_list])
+        texts_editor.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT, buff=.1)
+        texts_editor.next_to(pos, DOWN, buff=.05, aligned_edge=LEFT)
+        self.add(texts_editor)
+        k = 0
+        current_rect = SurroundingRectangle(texts_obj[k][2:], stroke_color=RED)
+        self.play(ShowCreation(current_rect))
+
+        for i in words_list:
+            animations = self.keyboard.write_sequence(i)
+            word = iter(texts_editor[k])
+            for j in animations:
+                self.play(j[0],
+                          next(word).set_color, BLACK,
+                          run_time=.1
+                          )
+                self.play(j[1], run_time=.1) 
+
+            self.wait()
+            k += 1
+
+            if k < len(words_list):
+                self.play(
+                    current_rect.move_to, texts_obj[k][2:],
+                    current_rect.set_width, texts_obj[k][2:].get_width() + .2, True
+                )
+                # cross = get_cross(texts_obj[k][2:])
+                # self.play(ShowCreation(cross))
+                # self.wait(.4)
+
+        self.play(FadeOut(current_rect))
+
 
 class Test(Scene):
     def construct(self):
-        screen = ImageMobject(ASSESTS_PATH + "computer.png").scale(2)
-        e = ImageMobject(ASSESTS_PATH + "editor.png")
-        self.play(FadeInFrom(screen, 3 * UP))
-        e.move_to(screen)
-        e.shift(.5 * UP)
-        self.play(GrowFromCenter(e), run_time=.5)
+        a = Text("Ali")
+        b = Text("Gribkk").next_to(a, DOWN, buff=.5, aligned_edge=LEFT)
+        self.add(a, b)
+        r = SurroundingRectangle(a)
+        self.play(ShowCreation(r))
+        self.wait()
+        self.play(
+            r.move_to, b,
+            r.set_width, b.get_width() + .2, True
+        )
         self.wait()
 
