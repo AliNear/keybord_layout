@@ -487,45 +487,6 @@ class TypeWriter(ThreeDScene):
         )
 
 
-class AxisScene(MovingCameraScene):
-    
-    def construct(self):
-        axis = Line(20 * LEFT, 5 * RIGHT, stroke_width=4)
-        ticks_coords = [0, -3.5, -6, -9]
-        ticks_texts = ["Now", "1970","1930", "1868"]
-        images = ["keyboard", "old_keyboard", "teletype", "typewriter"]
-        images = [i + ".jpg" for i in images]
-        titles = ["Current", "Electronic Keyboard", "Teletype", "Typewriter"]
-        axis.add_tip()
-        self.play(ShowCreation(axis))
-        ticks = VGroup()
-        texts = VGroup()
-        figures = Group()
-        for i in range(4):
-            start = np.array([ticks_coords[i], 0, 0])
-            tick = Line(start, start + .2 * UP, stroke_width=4)
-            text = Text(ticks_texts[i], font="Century Gothic Bold", color=BLACK).scale(.6)
-            img = FramedImage(ASSESTS_PATH + images[i], titles[i])
-            text.next_to(tick, DOWN, buff=.2)
-            img.next_to(tick, UP, buff=0.5)
-            ticks.add(tick)
-            texts.add(text)
-            figures.add(img)
-        
-        for i in range(4):
-            self.play(ShowCreation(ticks[i]), run_time=.3)
-            self.play(Write(texts[i]), run_time=.4)
-            self.play(FadeInFrom(figures[i], 3 * UP))
-
-        self.wait()
-
-        self.play(
-            self.camera_frame.set_height, 5)
-        self.play(
-            self.camera_frame.shift, 9 * LEFT, run_time=2, rate_func=linear
-        )
-        
-
 
 class PartOne(Scene):
     """
@@ -695,7 +656,7 @@ class PartFour(Scene):
         self.play(FadeOut(current_rect))
 
 
-class Test(MovingCameraScene):
+class PartTwo(MovingCameraScene):
     CONFIG = {
         "text_kwargs": {
             "font": "SF Pro Display Bold",
@@ -704,23 +665,78 @@ class Test(MovingCameraScene):
         "line_text_kwargs": {
             "font": "SF Pro Display Bold",
             "color": "#F7D95B",
-        }
+        },
+ 
 
     }
 
     def construct(self):
-        img = ImageMobject(ASSESTS_PATH + "keyboard.jpg")
-        self.add(img)
-        line = Line(RIGHT, ORIGIN)
-        line.next_to(img, DOWN, aligned_edge=RIGHT)
-        self.play(ShowCreation(line))
+        self.ticks_texts = ["Now", "1970","1930", "1868"]
+        images = ["keyboard", "old_keyboard", "teletype_1", "typewriter"]
+        self.images = [i + ".png" for i in images]
+        self.titles = ["Current", "Electronic Keyboard", "Teletype", "Typewriter"]
+        self.scales = [.8, 1.0, 1.0, 1]
+ 
+        img = ImageMobject(ASSESTS_PATH + "keyboard.png").scale(.8)
+        tick = Line(ORIGIN, ORIGIN + .2 * UP, stroke_width=5)
+        text = Text("Current", **self.line_text_kwargs).scale(.8)
+        tick_text = Text("Now", **self.text_kwargs).scale(.7)
+        text.next_to(img, UP, buff=.1)
+        
+        self.line = Line(RIGHT, ORIGIN)
+        self.line.match_width(img)
+        self.line.next_to(img, DOWN, aligned_edge=RIGHT)
+        tick.next_to(self.line, DOWN, buff=.02)
+        tick_text.next_to(tick, DOWN, buff=.02)
+        animations = LaggedStart(
+            FadeInFrom(img, 4 * DOWN),
+            ShowCreation(self.line),
+            ShowCreation(tick),
+            GrowFromCenter(text),
+            FadeInFrom(tick_text, 2 * DOWN)
+
+        )
+        self.play(animations, run_time=1.2)
+        self.next_line = Line(ORIGIN,  6 * LEFT)
+        self.next_line.next_to(self.line, LEFT, buff=0)
+        self.camera_frame.save_state()
         self.play(
             self.camera_frame.set_width, 4,
             self.camera_frame.set_height, 5,
-
-            self.camera_frame.shift, 3 * LEFT,
-            line.stretch_about_point, 8, 0, line.points[0]
+            self.camera_frame.shift, 7 * LEFT,
+            ShowCreation(self.next_line)
         )
-        self.wait()
+        self.i = 2
+        for i in range(1, 4):
+            self.add_milestone(i)
+            if i < 3:
+                self.play(
+                    self.camera_frame.shift, 8 * LEFT,
+                    ShowCreation(self.next_line)
+                )
 
+
+    def add_milestone(self, index):
+        current = self.next_line.get_edge_center(LEFT)
+        tick = Line(ORIGIN, ORIGIN + .2 * UP, stroke_width=5)
+        tick_text = Text(self.ticks_texts[index], **self.text_kwargs).scale(.7)
+        text = Text(self.titles[index], **self.line_text_kwargs).scale(.7)
+        img = ImageMobject(ASSESTS_PATH + self.images[index]).scale(self.scales[index])
+        img.next_to(current, UP, buff=.2)
+        text.next_to(img, UP, buff=.1)
+        tick.next_to(img, DOWN, buff=.19)
+        tick_text.next_to(tick, DOWN, buff=.02)
+
+        new_next_line = Line(ORIGIN, 8 * LEFT)
+        new_next_line.next_to(self.next_line, LEFT, buff=0)
+
+        animations = LaggedStart(
+            FadeInFrom(img, 4 * DOWN),
+            ShowCreation(tick),
+            GrowFromCenter(text),
+            FadeInFrom(tick_text, 2 * DOWN)
+
+        )
+        self.play(animations, run_time=1.2)
+        self.next_line = new_next_line
 
