@@ -39,10 +39,11 @@ class PointObject(VMobject):
         x_amount = length / 3
         y_amount = x_amount * 2
         inflection = y_amount * direction_y + x_amount * direction_x
-        end = start + inflection
-        self.oblic = Line(start, end, **self.line_kwargs)
+        end = start + inflection 
+        self.dot = Dot(start, **self.line_kwargs).scale(.6)
+        self.oblic = Line(start, end + .018 * direction_x, **self.line_kwargs)
         self.straight = Line(end, end + length  * direction_x, **self.line_kwargs)
-        self.add(self.oblic, self.straight)
+        self.add(self.dot, self.oblic, self.straight)
 
 
 class Key(VMobject):
@@ -96,10 +97,11 @@ class Keyboard(VMobject):
 
     }
 
-    def __init__(self, layout, key_scale=.3, **kwargs):
+    def __init__(self, layout, key_scale=.3, background=True, **kwargs):
         VMobject.__init__(self, **kwargs)
         self.layout = layout
         self.key_scale = key_scale
+        self.add_bakcground = background
         self.buffer = int(key_scale == .3) * .08 + int(key_scale != .3) * .05
         self.buffer_line = int(key_scale == .3) * .1 + int(key_scale != .3) * .08
         self.keys = Group()
@@ -128,15 +130,22 @@ class Keyboard(VMobject):
             self.keys.add(row_group)
             self.add(row_group)
 
-        self.background = SurroundingRectangle(Group(*self.keys), 
+        if self.add_bakcground:
+            print("herhe")
+            self.background = SurroundingRectangle(Group(*self.keys), 
                                                fill_color=WHITE,
                                                fill_opacity=1,
                                                stroke_width=2,
                                                stroke_color="#CFD2DA"
                                                )
-        self.background.scale(.97)
-        self.add(self.background)
+            self.background.scale(.97)
+            self.add(self.background)
         self.add(self.keys)
+
+    def get_keys(self, keys):
+        keys_obj = Group(*[self.keys_dict[i] for i in keys])
+        return keys_obj
+
 
     def write_sequence(self, sequence, scene=None):
         seq = sequence.upper()
@@ -524,49 +533,67 @@ class PartOne(Scene):
     """
     CONFIG = {
         "text_kwargs": {
-            "font": "SF Pro Display Regular",
-            "color": BLACK,
-        }
- 
+            "font": "SF Pro Display Bold",
+            "color": WHITE,
+        },
+        "line_text_kwargs": {
+            "font": "SF Pro Display Bold",
+            "color": "#F7D95B",
+        },
+        "surround_rect_kwargs": {
+            "color": "#A5D48B",
+            "stroke_width": 7,
+        },
+
     }
 
     def construct(self):
         self.prepare()
         self.introduction()
-        self.questioning()
+        # self.questioning()
 
     def prepare(self):
         layout = QWERTY_LAYOUT
-        self.keyboard = Keyboard(layout)
+        self.keyboard = Keyboard(layout, background=False)
 
     def introduction(self):
-        self.play(ShowCreation(self.keyboard))
+        self.play(FadeInFrom(self.keyboard, 2 * DOWN))
         text = Text("The QWERTY Keyboard", **self.text_kwargs).scale(1.0)
         text.set_y(3.5)
         self.play(FadeInFrom(text, 2 * UP))
-        self.play(self.keyboard.shift, 2.5 * LEFT)
+        #Qwerty name origin
+        qwerty = self.keyboard.get_keys("qwerty")
+        qwerty.save_state()
+        self.play(qwerty.scale, 2)
+        self.wait(.5)
+        self.play(Restore(qwerty))
+        self.wait(.5)
+
+        self.play(self.keyboard.shift, 2.2 * LEFT)
         row_names = ["Upper row", "Home row", "Lower row"]
         row_texts = VGroup()
         arrows = VGroup()
-        x = 2.5
-        y_start = -1
+        row = self.keyboard.get_keys(QWERTY_LAYOUT[0])
+        rect = Rectangle(width=row.get_width()+.1, height=row.get_height()+.1,
+                         **self.surround_rect_kwargs)
         j = 0
         for i in row_names:
+            row = self.keyboard.get_keys(QWERTY_LAYOUT.pop(0))
             point = self.keyboard.keys[j].get_edge_center(RIGHT)
             arrow = PointObject(point)
-            row_text = Text(i, **self.text_kwargs).scale(.8)
+            row_text = Text(i, **self.line_text_kwargs).scale(.8)
             row_text.next_to(arrow.straight, UP, buff=.2)
+            self.play(rect.move_to, row)
             self.play(ShowCreation(arrow))
             self.play(FadeInFrom(row_text, 2 * RIGHT))
             row_texts.add(row_text)
             arrows.add(arrow)
-            y_start -= self.keyboard.spacing_y
             j += 1
+        self.play(FadeOut(rect))
 
         self.wait()
         self.play(FadeOut(arrows), FadeOut(row_texts))
-        self.play(self.keyboard.shift, 2.5 * RIGHT)
-        self.keyboard.write_sequence("ALI", self)
+        self.play(self.keyboard.shift, 2.2 * RIGHT)
 
 
     def questioning(self):
@@ -668,17 +695,32 @@ class PartFour(Scene):
         self.play(FadeOut(current_rect))
 
 
-class Test(Scene):
+class Test(MovingCameraScene):
+    CONFIG = {
+        "text_kwargs": {
+            "font": "SF Pro Display Bold",
+            "color": WHITE,
+        },
+        "line_text_kwargs": {
+            "font": "SF Pro Display Bold",
+            "color": "#F7D95B",
+        }
+
+    }
+
     def construct(self):
-        a = Text("Ali")
-        b = Text("Gribkk").next_to(a, DOWN, buff=.5, aligned_edge=LEFT)
-        self.add(a, b)
-        r = SurroundingRectangle(a)
-        self.play(ShowCreation(r))
-        self.wait()
+        img = ImageMobject(ASSESTS_PATH + "keyboard.jpg")
+        self.add(img)
+        line = Line(RIGHT, ORIGIN)
+        line.next_to(img, DOWN, aligned_edge=RIGHT)
+        self.play(ShowCreation(line))
         self.play(
-            r.move_to, b,
-            r.set_width, b.get_width() + .2, True
+            self.camera_frame.set_width, 4,
+            self.camera_frame.set_height, 5,
+
+            self.camera_frame.shift, 3 * LEFT,
+            line.stretch_about_point, 8, 0, line.points[0]
         )
         self.wait()
+
 
