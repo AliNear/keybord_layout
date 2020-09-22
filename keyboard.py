@@ -75,6 +75,12 @@ class KeyImg(Mobject):
     CONFIG = {
         "scale_factor": .3,
         "key_path": ASSESTS_PATH + "normal_keys/",
+        "mask_kwargs": {
+            "fill_color": "#A5D48B",
+            "fill_opacity": .6,
+            "stroke_width": 1,
+            "buff": SMALL_BUFF/4,
+        }
     }
 
     def __init__(self, key, x=0, y=0, **kwargs):
@@ -83,6 +89,9 @@ class KeyImg(Mobject):
         self.key_letter = key
         self.key_img.set_xy(x,y)
         self.add(self.key_img)
+    def get_mask(self):
+        rect = SurroundingRectangle(self, **self.mask_kwargs)
+        return rect
 
 class Keyboard(VMobject):
     """
@@ -131,7 +140,6 @@ class Keyboard(VMobject):
             self.add(row_group)
 
         if self.add_bakcground:
-            print("herhe")
             self.background = SurroundingRectangle(Group(*self.keys), 
                                                fill_color=WHITE,
                                                fill_opacity=1,
@@ -171,12 +179,22 @@ class Keyboard(VMobject):
             j += 1
         scene.play(*animations)
 
-    def color_word(self, word, scene):
-        animations = VGroup()
-        for i in word.upper():
+    def color_word(self, word):
+        masks = Group()
+        points = []
+        for i in word.lower():
             key = self.keys_dict[i]
-            animations.add(key.set_color(GREEN))
-        scene.play(LaggedStart(*animations, lag_ratio=.3))
+            masks.add(key.get_mask())
+            points.append(key.get_center())
+        obj = VGroup()
+        for i in range(len(points)-1):
+            obj.add(Dot(points[i], color=RED))
+            obj.add(DashedLine(points[i], points[i+1], color=BLACK))
+
+        obj.add(Dot(points[-1]))
+ 
+ 
+        return masks, obj
 
     def explode(self, scene):
         animations = VGroup()
@@ -244,121 +262,6 @@ class FramedImage(ImageMobject):
         title_text = Text(title, **self.title_kwargs).scale(.5)
         title_text.next_to(frame, UP, buff=.1)
         self.add(frame,  title_text)
-
-class QwertyKB(Scene):
-    def construct(self):
-        self.prepare()
-        self.add_screen()
-        self.write_on_screen()
-
-    def prepare(self):
-        self.keys = VGroup()
-        self.keys_dict = {}
-        self.first = True
-        x = -3.5
-        y = -1
-        y_spacing = 0.85
-        self.add_keys(list("QWERTYUIOP"), start_x=x, start_y=y)
-        self.add_keys(list("ASDFGHJKL"), start_x=x+.5, start_y=y-y_spacing)
-        self.add_keys(list("ZXCVBNM"), start_x=x+1, start_y=y-2*y_spacing)
-        self.add_keys(list(" "), start_x=x+4, start_y=y-3*y_spacing, width=5)
-    
-    def add_keys(self, keys, start_x=-6.5, start_y=1, width=.7, height=.7):
-        limit=.1
-        j = 0
-        animations = VGroup()
-        x = start_x
-        for i in keys:
-            a = Key(i, x = x + j * limit, y=start_y, width=width, height=height)
-            animations.add(ShowCreation(a))
-            self.keys.add(a)
-            self.keys_dict[i] = a
-            x += width
-            j += 1
-        self.play(LaggedStart(*animations))
-
-    def add_screen(self):
-        screen_width = 7
-        screen_height = 3.5
-        x_screen, y_screen = 0, 1.5
-        self.screen_rect = Rectangle(width=screen_width, height=screen_height)
-        self.screen_rect.set_fill(color=WHITE, opacity=1)
-        self.screen_rect.set_stroke(color=GREY, width=3)
-        self.screen_rect.set_xy(x_screen, y_screen)
-        self.screen_header = Rectangle(width=1.3, height=.4)
-        self.screen_header.set_fill(color=BLUE, opacity=.5)
-        self.screen_header.next_to(self.screen_rect, UP+LEFT, buff=0.03)
-        self.screen_header.shift(1.35*RIGHT)
-        self.title = Text("File1.txt", color=BLACK, font="Apercu-Mono").scale(.4)
-        self.title.move_to(self.screen_header)
-        self.screen = VGroup(self.screen_rect, self.screen_header, self.title)
-
-    def write_on_screen(self):
-        self.play(FadeInFrom(self.screen, 2 * RIGHT))
-        cursor = Text("|", color=BLACK, font="Apercu-Mono").scale(.4)
-        cursor.next_to(self.title, DOWN, buff=.5)
-        self.play(Write(cursor))
-        text="Just"
-        for i in text:
-            key = self.keys_dict[i.upper()]
-            t = Text(i, color=BLACK, font="Apercu-Mono").scale(.4)
-            t.next_to(cursor, RIGHT, buff=.02)
-            a = key.glow(RED)
-            self.play(Write(t), cursor.shift,.1 * RIGHT,a[0], run_time=.3)
-            self.play(a[1], run_time=.2)
-
-
-        
-
-    def move_keys(self, keys, start_x, start_y):
-        limit=.2
-        j = 0
-        animations = VGroup()
-        x = start_x
-        for i in keys:
-            k = self.keys_dict[i]
-            position = np.array([x + j * limit, start_y, 0])
-            animations.add(ApplyMethod(k.move_to, position))
-            x += 1
-            j += 1
-        self.play(*animations)
- 
-    def write_sequence(self, sequence):
-        seq = sequence.upper()
-        t = Text("", font="DDT W00 Regular").set_xy(-4, 2).scale(.3)
-        for i in seq:
-            key = self.keys_dict[i.upper()]
-            a = key.glow(RED)
-            if i == " ":
-                s = Text("_", font="DDT W00 Regular").set_fill(opacity=0)
-                s.set_stroke(width=0)
-            else:
-                s = Text(str(i), font="DDT W00 Regular")
-            s.next_to(t, RIGHT, buff=.2)
-            b = Write(s)
-            self.play(a[0], b, run_time=.3)
-            self.play(a[1], run_time=.1)
-            t = s
-
-    def color_word(self, word):
-        animations = VGroup()
-        for i in word.upper():
-            key = self.keys_dict[i]
-            animations.add(key.set_color(GREEN))
-        self.play(LaggedStart(*animations, lag_ratio=.3))
-
-    def explode(self):
-        animations = VGroup()
-        directions = [UP, DOWN, RIGHT, LEFT]
-        self.keys.save_state()
-        for i in self.keys:
-            x = np.random.randint(1, 5)
-            y = np.random.randint(1, 3)
-            r = np.random.rand()
-            v = x * random.choice(directions) + y * random.choice(directions)
-            animations.add(ApplyMethod(i.rotate, r))
-            animations.add(ApplyMethod(i.shift, v))
-        self.play(*animations)
 
 class TypeWriterArm(VMobject):
     CONFIG = {
@@ -576,16 +479,16 @@ class PartFour(Scene):
     """
     CONFIG = {
         "text_kwargs": {
-            "font": "SF Pro Display Regular",
-            "color": BLACK,
+            "font": "SF Pro Display Semibold",
+            "color": WHITE,
         },
         "title_kwargs": {
-            "font": "AvenirNextLTPro-Bold",
-            "color": BLACK,
+            "font": "SF Pro Display Bold",
+            "color": "#F7D95B",
         },
         "editor_text_kwargs": {
             "font": "SF Pro Display Regular",
-            "color": WHITE,
+            "color": WHITE,  #It has to be "Invisible" at first
         }
     }
 
@@ -593,6 +496,7 @@ class PartFour(Scene):
         self.prepare()
         self.add_screen()
         self.type_words()
+        self.show_typing_complexity()
 
     def prepare(self):
         self.keyboard = Keyboard(QWERTY_LAYOUT, key_scale=.2).shift(DOWN)
@@ -615,23 +519,23 @@ class PartFour(Scene):
         words_title.move_to(words_pos).shift(2 * LEFT + .4 * DOWN)
         self.play(GrowFromCenter(words_title))
         
-        words_list = ["read", "keyboard", "the", "winter", "anyone"]
-        texts_obj = VGroup(*[Text("- " + i, **self.text_kwargs).scale(.6) for i in words_list])
-        texts_obj.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT)
-        texts_obj.next_to(words_title, DOWN, buff=.4, aligned_edge=LEFT)
-        animations = LaggedStart(*[FadeIn(i) for i in texts_obj], lag_ratio=.5)
+        self.words_list = ["read", "morning", "the", "hello", "anyone"]
+        self.texts_obj = VGroup(*[Text("- " + i, **self.text_kwargs).scale(.6) for i in self.words_list])
+        self.texts_obj.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT)
+        self.texts_obj.next_to(words_title, DOWN, buff=.4, aligned_edge=LEFT)
+        animations = LaggedStart(*[FadeIn(i) for i in self.texts_obj], lag_ratio=.5)
         self.play(animations)
         
         pos = self.editor.get_corner(UL) + .2 * DR
-        texts_editor = VGroup(*[Text(i, **self.editor_text_kwargs).scale(.3) for i in words_list])
+        texts_editor = VGroup(*[Text(i, **self.editor_text_kwargs).scale(.3) for i in self.words_list])
         texts_editor.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT, buff=.1)
         texts_editor.next_to(pos, DOWN, buff=.05, aligned_edge=LEFT)
         self.add(texts_editor)
         k = 0
-        current_rect = SurroundingRectangle(texts_obj[k][2:], stroke_color=RED)
-        self.play(ShowCreation(current_rect))
+        self.current_rect = SurroundingRectangle(self.texts_obj[k][2:], stroke_color=RED)
+        self.play(ShowCreation(self.current_rect))
 
-        for i in words_list:
+        for i in self.words_list:
             animations = self.keyboard.write_sequence(i)
             word = iter(texts_editor[k])
             for j in animations:
@@ -644,16 +548,30 @@ class PartFour(Scene):
             self.wait()
             k += 1
 
-            if k < len(words_list):
+            if k < len(self.words_list):
                 self.play(
-                    current_rect.move_to, texts_obj[k][2:],
-                    current_rect.set_width, texts_obj[k][2:].get_width() + .2, True
+                    self.current_rect.move_to, self.texts_obj[k][2:],
+                    self.current_rect.set_width, self.texts_obj[k][2:].get_width() + .2, True
                 )
-                # cross = get_cross(texts_obj[k][2:])
-                # self.play(ShowCreation(cross))
-                # self.wait(.4)
 
-        self.play(FadeOut(current_rect))
+
+    def show_typing_complexity(self):
+        for i in range(len(self.words_list)-1, -1, -1):
+            k = i - 1
+            masks, dot_line = self.keyboard.color_word(self.words_list[i])
+            animations = [GrowFromCenter(i) for i in masks]
+            self.play(LaggedStart(*animations))
+            self.wait(.3)
+            self.play(ShowCreation(dot_line), run_time=1.5)
+            self.wait(.3)
+            self.play(FadeOut(masks), FadeOut(dot_line))
+            if k > -1:
+                self.play(
+                    self.current_rect.move_to, self.texts_obj[k][2:],
+                    self.current_rect.set_width, self.texts_obj[k][2:].get_width() + .2, True
+                )
+
+
 
 
 class PartTwo(MovingCameraScene):
@@ -689,11 +607,11 @@ class PartTwo(MovingCameraScene):
         tick.next_to(self.line, DOWN, buff=.02)
         tick_text.next_to(tick, DOWN, buff=.02)
         animations = LaggedStart(
-            FadeInFrom(img, 4 * DOWN),
+            FadeIn(img, 4 * DOWN),
             ShowCreation(self.line),
             ShowCreation(tick),
             GrowFromCenter(text),
-            FadeInFrom(tick_text, 2 * DOWN)
+            FadeIn(tick_text, 2 * DOWN)
 
         )
         self.play(animations, run_time=1.2)
@@ -731,12 +649,24 @@ class PartTwo(MovingCameraScene):
         new_next_line.next_to(self.next_line, LEFT, buff=0)
 
         animations = LaggedStart(
-            FadeInFrom(img, 4 * DOWN),
+            FadeIn(img, 4 * DOWN),
             ShowCreation(tick),
             GrowFromCenter(text),
-            FadeInFrom(tick_text, 2 * DOWN)
+            FadeIn(tick_text, 2 * DOWN)
 
         )
         self.play(animations, run_time=1.2)
         self.next_line = new_next_line
+
+class Test(Scene):
+    def construct(self):
+        points = [UL, RIGHT, DOWN, DL, ORIGIN]
+        obj = VGroup()
+        for i in range(4):
+            obj.add(Dot(points[i], color=RED))
+            obj.add(DashedLine(points[i], points[i+1]))
+
+        obj.add(Dot(points[4]))
+        self.play(ShowCreation(obj))
+
 
