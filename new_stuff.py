@@ -73,7 +73,8 @@ class AnotherTest(Scene):
 
 class Test(Scene):
     def construct(self):
-        img = ImageMobject(ASSESTS_PATH + "vintage.jpg")
-        rect = SurroundingRectangle(img)
-        self.play(ShowCreation(img))
-        self.play(VFadeIn(rect))
+        rect = Rectangle(fill_opacity=1, fill_color=GREEN)
+        c = Circle(fill_opacity=1, fill_color=BLUE)
+        self.play(ShowCreation(c))
+        self.play(ShowCreation(rect))
+        self.wait()

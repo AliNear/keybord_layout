@@ -454,10 +454,19 @@ class PartOne(Scene):
             arrows.add(arrow)
             j += 1
         self.play(FadeOut(rect))
-
         self.wait()
         self.play(FadeOut(arrows), FadeOut(row_texts))
         self.play(self.keyboard.shift, 2.2 * RIGHT)
+
+        #Show why it's named Home row
+        hands = ImageMobject(ASSESTS_PATH + "hands.png")
+        hands.scale(3)
+        hands.set_xy(-1, -2.5)
+        self.play(FadeInFrom(hands, 2 * DOWN))
+        self.wait(.3)
+        self.play(FadeOut(hands))
+
+
 
 
     def questioning(self):
@@ -495,13 +504,13 @@ class PartFour(Scene):
     def construct(self):
         self.prepare()
         self.add_screen()
-        self.type_words()
-        self.show_typing_complexity()
+        self.type_words(1)
+        self.show_typing_complexity(1)
 
     def prepare(self):
-        self.keyboard = Keyboard(QWERTY_LAYOUT, key_scale=.2).shift(DOWN)
+        self.keyboard = Keyboard(QWERTY_LAYOUT, key_scale=.2, background=False).shift(DOWN)
         self.screen = ImageMobject(ASSESTS_PATH + "computer.png").scale(2)
-        self.screen.set_y(2)
+        self.screen.set_y(1.8)
         self.editor = ImageMobject(ASSESTS_PATH + "editor.png")
         self.editor.move_to(self.screen)
         self.editor.shift((.5 * UP))
@@ -511,33 +520,35 @@ class PartFour(Scene):
         self.add(self.keyboard)
         self.play(FadeInFrom(self.screen, 2 * UP))
         self.play(GrowFromCenter(self.editor), run_time=.5)
+        self.screen.add(self.editor)
         self.wait()
 
-    def type_words(self):
+    def type_words(self, num_words=5):
         words_title = Text("Words", **self.title_kwargs).scale(.8)
         words_pos = self.screen.get_corner(UL)
-        words_title.move_to(words_pos).shift(2 * LEFT + .4 * DOWN)
+        words_title.move_to(words_pos).shift(3 * LEFT + .4 * DOWN)
         self.play(GrowFromCenter(words_title))
         
         self.words_list = ["read", "morning", "the", "hello", "anyone"]
-        self.texts_obj = VGroup(*[Text("- " + i, **self.text_kwargs).scale(.6) for i in self.words_list])
+        self.words_list = self.words_list[:num_words]
+        self.texts_obj = VGroup(*[Text("• " + i, **self.text_kwargs).scale(.6) for i in self.words_list])
         self.texts_obj.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT)
         self.texts_obj.next_to(words_title, DOWN, buff=.4, aligned_edge=LEFT)
         animations = LaggedStart(*[FadeIn(i) for i in self.texts_obj], lag_ratio=.5)
         self.play(animations)
         
         pos = self.editor.get_corner(UL) + .2 * DR
-        texts_editor = VGroup(*[Text(i, **self.editor_text_kwargs).scale(.3) for i in self.words_list])
-        texts_editor.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT, buff=.1)
-        texts_editor.next_to(pos, DOWN, buff=.05, aligned_edge=LEFT)
-        self.add(texts_editor)
+        self.texts_editor = VGroup(*[Text(i, **self.editor_text_kwargs).scale(.3) for i in self.words_list])
+        self.texts_editor.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT, buff=.1)
+        self.texts_editor.next_to(pos, DOWN, buff=.05, aligned_edge=LEFT)
+        self.add(self.texts_editor)
         k = 0
         self.current_rect = SurroundingRectangle(self.texts_obj[k][2:], stroke_color=RED)
         self.play(ShowCreation(self.current_rect))
 
         for i in self.words_list:
             animations = self.keyboard.write_sequence(i)
-            word = iter(texts_editor[k])
+            word = iter(self.texts_editor[k])
             for j in animations:
                 self.play(j[0],
                           next(word).set_color, BLACK,
@@ -555,7 +566,28 @@ class PartFour(Scene):
                 )
 
 
-    def show_typing_complexity(self):
+    def show_typing_complexity(self, num_words):
+        """
+        Here we start showing cons of qwerty, starting by the key movements
+        Cons we'll mention:
+        - Awkward finger motion
+        - Jumping over home row
+        - Left hand
+        """
+        #Move the screen away
+        self.play(FadeOut(self.screen), FadeOut(self.texts_editor))
+        self.cons_title = Text("Cons", **self.title_kwargs).scale(.8)
+        self.cons_pos = self.screen.get_corner(UR)
+        self.cons_title.move_to(self.cons_pos).shift(3 * RIGHT + .4 * DOWN)
+        self.play(GrowFromCenter(self.cons_title))
+
+        self.cons_list = ["Complicated\n finger motion", "One hand typing", "Jumping over the home row"]
+        self.cons_obj = VGroup(*[Text("• " + i, **self.text_kwargs).scale(.6) for i in self.cons_list])
+        self.cons_obj.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT)
+        self.cons_obj.next_to(self.cons_title, DOWN, buff=.4, aligned_edge=LEFT)
+
+        self.words_list = self.words_list[:num_words]
+        firt_iteration = True
         for i in range(len(self.words_list)-1, -1, -1):
             k = i - 1
             masks, dot_line = self.keyboard.color_word(self.words_list[i])
@@ -570,6 +602,8 @@ class PartFour(Scene):
                     self.current_rect.move_to, self.texts_obj[k][2:],
                     self.current_rect.set_width, self.texts_obj[k][2:].get_width() + .2, True
                 )
+            if firt_iteration:
+                self.play(FadeInFrom(self.cons_obj[0], 2 * UP))
 
 
 
@@ -660,13 +694,6 @@ class PartTwo(MovingCameraScene):
 
 class Test(Scene):
     def construct(self):
-        points = [UL, RIGHT, DOWN, DL, ORIGIN]
-        obj = VGroup()
-        for i in range(4):
-            obj.add(Dot(points[i], color=RED))
-            obj.add(DashedLine(points[i], points[i+1]))
-
-        obj.add(Dot(points[4]))
-        self.play(ShowCreation(obj))
+        obj = Circle()
 
 
