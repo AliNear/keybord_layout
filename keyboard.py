@@ -504,8 +504,8 @@ class PartFour(Scene):
     def construct(self):
         self.prepare()
         self.add_screen()
-        self.type_words(1)
-        self.show_typing_complexity(1)
+        self.type_words(2)
+        self.show_typing_complexity(2)
 
     def prepare(self):
         self.keyboard = Keyboard(QWERTY_LAYOUT, key_scale=.2, background=False).shift(DOWN)
@@ -574,8 +574,9 @@ class PartFour(Scene):
         - Jumping over home row
         - Left hand
         """
-        #Move the screen away
-        self.play(FadeOut(self.screen), FadeOut(self.texts_editor))
+        #Move the screen away and s
+        self.play(FadeOut(self.screen), FadeOut(self.texts_editor), FadeOut(self.editor))
+        self.play(self.keyboard.shift, UP)
         self.cons_title = Text("Cons", **self.title_kwargs).scale(.8)
         self.cons_pos = self.screen.get_corner(UR)
         self.cons_title.move_to(self.cons_pos).shift(3 * RIGHT + .4 * DOWN)
@@ -587,7 +588,7 @@ class PartFour(Scene):
         self.cons_obj.next_to(self.cons_title, DOWN, buff=.4, aligned_edge=LEFT)
 
         self.words_list = self.words_list[:num_words]
-        firt_iteration = True
+        first_iteration = True
         for i in range(len(self.words_list)-1, -1, -1):
             k = i - 1
             masks, dot_line = self.keyboard.color_word(self.words_list[i])
@@ -602,8 +603,9 @@ class PartFour(Scene):
                     self.current_rect.move_to, self.texts_obj[k][2:],
                     self.current_rect.set_width, self.texts_obj[k][2:].get_width() + .2, True
                 )
-            if firt_iteration:
+            if first_iteration:
                 self.play(FadeInFrom(self.cons_obj[0], 2 * UP))
+                first_iteration = False
 
 
 
