@@ -18,6 +18,16 @@ def get_lower_rect(obj, color="#41BC27"):
     p4 = p2 + .06 * UP
     return Polygon(p1, p2, p4, p3, fill_color=color, fill_opacity=1, stroke_width=0)
 
+def get_surrounding_trans(mobject, opacity=.3):
+    rect = RoundedRectangle(width=mobject.get_width()*1.2, height=mobject.get_height()*1.5,
+                            color=WHITE, fill_color=WHITE,
+                            stroke_width=0, fill_opacity=opacity, corner_radius=.1)
+
+    # height = mobject.get_height()
+    # rect.set_height(height * 1.2)
+    rect.move_to(mobject)
+    return rect
+
 class PointObject(VMobject):
     """Creates a pointing line with an inflection.
     Parameters
@@ -192,8 +202,6 @@ class Keyboard(VMobject):
             obj.add(DashedLine(points[i], points[i+1], color=BLACK))
 
         obj.add(Dot(points[-1]))
- 
- 
         return masks, obj
 
     def explode(self, scene):
@@ -237,9 +245,7 @@ class Keyboard(VMobject):
         scene.play(LaggedStart(*animations_alpha_keys))
         scene.wait(1)
         scene.play(*animations_func_keys)
-                
 
-       
 
 class FramedImage(ImageMobject):
     CONFIG = {
@@ -297,13 +303,11 @@ class TypeWriter(ThreeDScene):
             "color": BLACK,
         }
     }
-    
     def construct(self):
         self.prepare()
         self.add_sticks()
         self.write_word("ALI")
 
-        
     def prepare(self):
         self.move_camera(phi=0, theta=-90 * DEGREES, distance=20)
         self.chasis = ImageMobject(ASSESTS_PATH + "frame_4.png").scale(1.9)
@@ -324,7 +328,6 @@ class TypeWriter(ThreeDScene):
         self.add_keys(list("QWERTYUIOP"), start_x=-2.5, start_y=-1)
         self.add_keys([*list("ASDFGHJKL"), "fig"], start_x=-2.4, start_y=-1.4)
         self.add_keys([*list("ZXCVBNM"), "semicolon", "colon", "cap"], start_x=-2.3, start_y=-1.8)
- 
 
     def add_keys(self, keys, start_x=-6.5, start_y=1):
         x = start_x
@@ -343,7 +346,6 @@ class TypeWriter(ThreeDScene):
         center_x = self.chasis.get_center()[0]
         center_y = 2
         r = 1.0
-        
         self.arms = VGroup()
         for i in range(27):
             x = center_x + r * np.cos(t)
@@ -356,7 +358,6 @@ class TypeWriter(ThreeDScene):
             arm = TypeWriterArm(d, f)
             self.arms.add(arm)
             t += s/70
-        
         self.play(ShowCreation(self.arms))
         # for arm in arms:
             # arm.save_state()
@@ -414,7 +415,7 @@ class PartOne(Scene):
     def construct(self):
         self.prepare()
         self.introduction()
-        # self.questioning()
+        self.questioning()
 
     def prepare(self):
         layout = QWERTY_LAYOUT
@@ -479,11 +480,10 @@ class PartOne(Scene):
         self.keyboard.explode(self)
         self.keyboard.rearrange_keys(ALPHA_LAYOUT, self)
         self.wait()
-        
 
 class PartFour(Scene):
     """
-    In this part we will type a list of words and show that qwerty 
+    In this part we will type a list of words and show that qwerty
     layout isn't that great
     """
     CONFIG = {
@@ -504,8 +504,8 @@ class PartFour(Scene):
     def construct(self):
         self.prepare()
         self.add_screen()
-        self.type_words(1)
-        self.show_typing_complexity(1)
+        self.type_words(2)
+        self.show_typing_complexity(2)
 
     def prepare(self):
         self.keyboard = Keyboard(QWERTY_LAYOUT, key_scale=.2, background=False).shift(DOWN)
@@ -528,7 +528,7 @@ class PartFour(Scene):
         words_pos = self.screen.get_corner(UL)
         words_title.move_to(words_pos).shift(3 * LEFT + .4 * DOWN)
         self.play(GrowFromCenter(words_title))
-        
+
         self.words_list = ["read", "morning", "the", "hello", "anyone"]
         self.words_list = self.words_list[:num_words]
         self.texts_obj = VGroup(*[Text("• " + i, **self.text_kwargs).scale(.6) for i in self.words_list])
@@ -536,7 +536,7 @@ class PartFour(Scene):
         self.texts_obj.next_to(words_title, DOWN, buff=.4, aligned_edge=LEFT)
         animations = LaggedStart(*[FadeIn(i) for i in self.texts_obj], lag_ratio=.5)
         self.play(animations)
-        
+
         pos = self.editor.get_corner(UL) + .2 * DR
         self.texts_editor = VGroup(*[Text(i, **self.editor_text_kwargs).scale(.3) for i in self.words_list])
         self.texts_editor.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT, buff=.1)
@@ -554,7 +554,7 @@ class PartFour(Scene):
                           next(word).set_color, BLACK,
                           run_time=.1
                           )
-                self.play(j[1], run_time=.1) 
+                self.play(j[1], run_time=.1)
 
             self.wait()
             k += 1
@@ -574,20 +574,21 @@ class PartFour(Scene):
         - Jumping over home row
         - Left hand
         """
-        #Move the screen away
-        self.play(FadeOut(self.screen), FadeOut(self.texts_editor))
+        #Move the screen away and s
+        self.play(FadeOut(self.screen), FadeOut(self.texts_editor), FadeOut(self.editor))
+        self.play(self.keyboard.shift, UP)
         self.cons_title = Text("Cons", **self.title_kwargs).scale(.8)
         self.cons_pos = self.screen.get_corner(UR)
         self.cons_title.move_to(self.cons_pos).shift(3 * RIGHT + .4 * DOWN)
         self.play(GrowFromCenter(self.cons_title))
 
-        self.cons_list = ["Complicated\n finger motion", "One hand typing", "Jumping over the home row"]
+        self.cons_list = ["Complicated finger motion", "One hand typing", "Jumping over the home row"]
         self.cons_obj = VGroup(*[Text("• " + i, **self.text_kwargs).scale(.6) for i in self.cons_list])
         self.cons_obj.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT)
         self.cons_obj.next_to(self.cons_title, DOWN, buff=.4, aligned_edge=LEFT)
 
         self.words_list = self.words_list[:num_words]
-        firt_iteration = True
+        first_iteration = True
         for i in range(len(self.words_list)-1, -1, -1):
             k = i - 1
             masks, dot_line = self.keyboard.color_word(self.words_list[i])
@@ -602,8 +603,9 @@ class PartFour(Scene):
                     self.current_rect.move_to, self.texts_obj[k][2:],
                     self.current_rect.set_width, self.texts_obj[k][2:].get_width() + .2, True
                 )
-            if firt_iteration:
+            if first_iteration:
                 self.play(FadeInFrom(self.cons_obj[0], 2 * UP))
+                first_iteration = False
 
 
 
@@ -618,7 +620,6 @@ class PartTwo(MovingCameraScene):
             "font": "SF Pro Display Bold",
             "color": "#F7D95B",
         },
- 
 
     }
 
@@ -628,13 +629,11 @@ class PartTwo(MovingCameraScene):
         self.images = [i + ".png" for i in images]
         self.titles = ["Current", "Electronic Keyboard", "Teletype", "Typewriter"]
         self.scales = [.8, 1.0, 1.0, 1]
- 
         img = ImageMobject(ASSESTS_PATH + "keyboard.png").scale(.8)
         tick = Line(ORIGIN, ORIGIN + .2 * UP, stroke_width=5)
         text = Text("Current", **self.line_text_kwargs).scale(.8)
         tick_text = Text("Now", **self.text_kwargs).scale(.7)
         text.next_to(img, UP, buff=.1)
-        
         self.line = Line(RIGHT, ORIGIN)
         self.line.match_width(img)
         self.line.next_to(img, DOWN, aligned_edge=RIGHT)
@@ -692,8 +691,88 @@ class PartTwo(MovingCameraScene):
         self.play(animations, run_time=1.2)
         self.next_line = new_next_line
 
-class Test(Scene):
+class TypingComplexity(Scene):
+    """
+    In this part we will type a list of words and show that qwerty
+    layout isn't that great
+    """
+    CONFIG = {
+        "text_kwargs": {
+            "font": "SF Pro Display Semibold",
+            "color": WHITE,
+        },
+        "title_kwargs": {
+            "font": "SF Pro Display Bold",
+            "color": "#F7D95B",
+        },
+        "editor_text_kwargs": {
+            "font": "SF Pro Display Regular",
+            "color": WHITE,  #It has to be "Invisible" at first
+        },
+        "cons_bg_kwargs": {
+            "fill_color":"#51CFF4",
+            "fill_opacity": 1,
+            "stroke_width": 0,
+            "height": FRAME_HEIGHT,
+            "width": FRAME_WIDTH/2.5,
+        }
+    }
+
     def construct(self):
-        obj = Circle()
+        self.prepare()
+        self.presentation()
+        self.start_complexity()
+
+    def prepare(self):
+        self.keyboard = Keyboard(QWERTY_LAYOUT,
+                                 key_scale=.2, background=False).shift(DOWN)
+        self.cons_bg = Rectangle(**self.cons_bg_kwargs)
+        self.cons_bg.set_x(FRAME_WIDTH/3.3)
+        words_title = Text("Words", **self.title_kwargs).scale(.8)
+        words_title.set_xy(-6, 3.5)
+        self.play(GrowFromCenter(words_title), 
+                  GrowFromCenter(get_surrounding_trans(words_title)))
+
+        self.words_list = ["read", "morning", "the", "hello", "anyone"]
+        # self.words_list = self.words_list[:num_words]
+        self.words_list_objs = VGroup(*[Text("• " + i, **self.text_kwargs).scale(.6) for i in self.words_list])
+
+        self.words_list_objs.arrange_submobjects(DOWN, True, True, aligned_edge=LEFT)
+        self.words_list_objs.next_to(words_title, DOWN, buff=.4, aligned_edge=LEFT)
+        self.cons_title = Text("Cons", **self.title_kwargs).scale(.8)
+        self.cons_title.set_xy(2.3, 3.5)
+
+        self.cons_dots = VGroup(*[
+            Dot(fill_opacity=.5, fill_color=WHITE).scale(1.2) for i in range(3)
+        ])
+
+        self.cons_dots.arrange_submobjects(DOWN, True, True, buff=.5)
+        self.cons_dots.next_to(self.cons_title, DOWN, buff=.4, aligned_edge=LEFT)
+        
+
+        self.cons_list = ["Complicated finger motion", "One hand typing", "Jumping over the home row"]
+        self.cons_obj = VGroup(*[Text(i, **self.text_kwargs).scale(.6) for i in self.cons_list])
+        dots = iter(self.cons_dots)
+        for i in self.cons_obj:
+            i.next_to(next(dots), RIGHT, buff=.2)
+        # self.cons_obj.next_to(self.cons_title, DOWN, buff=.4, aligned_edge=LEFT)
+
+
+    def presentation(self):
+        self.play(self.keyboard.shift, FRAME_WIDTH * LEFT / 4,
+                  FadeInFrom(self.cons_bg, 3 * RIGHT))
+
+        animations = LaggedStart(*[FadeIn(i) for i in self.words_list_objs], lag_ratio=.5)
+        animations_2 = LaggedStart(*[FadeIn(i) for i in self.cons_obj], lag_ratio=.5)
+        self.play(animations)
+        self.play(FadeIn(self.cons_dots))
+        self.play(animations_2)
+
+        self.play(GrowFromCenter(self.cons_title),
+                  GrowFromCenter(get_surrounding_trans(self.cons_title)))
+        self.wait()
+
+    def start_complexity(self):
+        pass
 
 
