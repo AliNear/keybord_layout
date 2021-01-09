@@ -306,7 +306,9 @@ class TypeWriter(ThreeDScene):
     def construct(self):
         self.prepare()
         self.add_sticks()
-        self.write_word("ALI")
+        self.regroup_objects()
+        # self.write_word("ALI")
+        self.show_inventor()
 
     def prepare(self):
         self.move_camera(phi=0, theta=-90 * DEGREES, distance=20)
@@ -364,6 +366,15 @@ class TypeWriter(ThreeDScene):
             # self.play(arm.rotate, 180 * DEGREES, Z_AXIS, {"about_point":arm.point}, run_time=.5)
             # self.play(Restore(arm), run_time=.5)
 
+    def regroup_objects(self):
+        self.typewriter_obj = Group(
+            self.cylinder,
+            self.cursor,
+            self.chasis,
+            self.keys,
+            self.arms
+        )
+
 
     def click_key(self, key):
         img = self.keys_dict[key.lower()]
@@ -389,6 +400,11 @@ class TypeWriter(ThreeDScene):
             self.paper.move_to, ORIGIN,
             self.paper.scale, 2
         )
+
+    def show_inventor(self):
+        self.scholes = ImageMobject(ASSESTS_PATH + "christopher_scholes.png")
+        self.play(self.typewriter_obj.scale, .5)
+        self.play(FadeIn(self.scholes))
 
 
 
@@ -423,6 +439,7 @@ class PartOne(Scene):
 
     def introduction(self):
         self.play(FadeInFrom(self.keyboard, 2 * DOWN))
+        self.add_sound(ASSESTS_PATH + "intro_lit.wav")
         text = Text("The QWERTY Keyboard", **self.text_kwargs).scale(1.0)
         text.set_y(3.5)
         self.play(FadeInFrom(text, 2 * UP))
