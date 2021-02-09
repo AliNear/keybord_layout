@@ -372,7 +372,6 @@ class TypeWriter(ThreeDScene):
         self.prepare()
         self.add_sticks()
         self.regroup_objects(add_to_scene=True)
-        """
         self.typeWriter_animation()
         self.wait()
         self.show_inventor()
@@ -383,12 +382,11 @@ class TypeWriter(ThreeDScene):
         self.jamming()
         self.japan_guy()
         self.wait()
-        self.morse_code()
+        self.after_morse()
         self.wait()
-        """
         self.morse_similarities()
         self.wait()
-        #self.morse_similarities_2()
+        self.morse_similarities_2()
 
     def prepare(self):
         self.move_camera(phi=0, theta=-90 * DEGREES, distance=20)
@@ -599,7 +597,7 @@ class TypeWriter(ThreeDScene):
             FadeOut(ellips_group),
         )
         # S and T
-        point_two_keys("s", "t")
+        ellips_group = point_two_keys("s", "t")
         example_two = Text("Host", **self.normal_text_kwargs)
         example_two.next_to(dot_example, RIGHT)
         example_two.submobjects[2].set_color(RED)
@@ -611,7 +609,7 @@ class TypeWriter(ThreeDScene):
         )
 
         # H and E
-        point_two_keys("h", "e")
+        ellips_group = point_two_keys("h", "e")
         example_one = Text("The", **self.normal_text_kwargs)
         example_one.next_to(dot_example, RIGHT)
         example_one.submobjects[1].set_color(RED)
@@ -623,6 +621,7 @@ class TypeWriter(ThreeDScene):
             FadeOut(ellips_group),
             FadeOut(example_one),
             FadeOut(example_two),
+            FadeOut(dot_example)
         )
 
     def japan_guy(self):
@@ -734,6 +733,33 @@ class TypeWriter(ThreeDScene):
             self.se_letter[0].move_to, self.se_letter.get_center(),
             FadeOut(self.se_morse[-1]),
             self.se_morse[:-1].move_to, pos_se_morse,
+        )
+        self.objects_group = VGroup(self.v_divider, self.z_letter,
+                                    self.se_letter[0], self.z_morse,
+                                    self.se_morse[:-1])
+
+        self.play(
+            self.objects_group.shift, 8 * UP,
+            self.typewriter_obj.move_to, ORIGIN
+        )
+        ellipsises = VGroup(
+            *[
+                self.get_highlight_key(i)
+                for i in "ce"
+            ]
+        )
+        self.play(
+            *[
+                GrowFromCenter(i)
+                for i in ellipsises
+            ]
+        )
+        self.wait()
+        self.play(
+            *[
+                ShrinkToCenter(i)
+                for i in ellipsises
+            ]
         )
 
         # self.play()
@@ -1612,59 +1638,3 @@ class DvorakStats(MovingCameraScene):
             )
         )
 
-
-
-class TestCoolStuff(Scene):
-
-    def construct(self):
-        p = Dot().scale(.2)
-        p.velocity = .3
-        img = ImageMobject(ASSESTS_PATH + "normal_keys/a.png")
-        img2 = ImageMobject(ASSESTS_PATH + "normal_keys/b.png")
-        self.play(FadeIn(img))
-        print(img.pixel_array.shape)
-        print(img2.pixel_array.shape)
-        self.play(img.become, img2)
-        self.play(FadeOut(img))
-        self.wait()
-"""
-        def updater(obj, dt):
-            x, y, z = obj.get_center()
-            steps = [-1, 0, 1]
-            step = choice(steps)
-
-            x += obj.velocity * dt
-            y += obj.velocity * dt
-            obj.move_to(np.array([x, y, z]))
-
-        for i in range(1000):
-            size = np.random.random()
-            if size > .3:
-                size = .3
-            a = Dot(color=get_random_color()).scale(size)
-            a.velocity = np.random.random() - .5
-            a.set_xy(np.random.randint(-700, 700)/100, np.random.randint(-350, 350)/100)
-            a.add_updater(updater)
-            self.add(a)
-        p.add_updater(updater)
-        self.add(p)
-        self.wait(1)
-"""
-
-class JustTesting(Scene):
-
-    def construct(self):
-        a = ImageMobject(ASSESTS_PATH + "keys/" + "a" + ".png").scale(.15)
-        w, h = 109, 46
-        e = Ellipse(
-            fill_color="#e63946",
-            fill_opacity=.5,
-            stroke_width=0,
-            width=w/h,
-            height=1
-        )
-
-        e.scale(.15)
-        e.shift(.035*UP)
-        self.play(ShowCreation(a))
-        self.play(ShowCreation(e))
