@@ -1,6 +1,8 @@
 from manimlib.imports import *
 import os
 
+from random import shuffle
+
 ASSESTS_PATH = os.getcwd() + "/projects/keyboard_layout/assets/"
 
 class AnotherTest(Scene):
@@ -78,3 +80,168 @@ class Test(Scene):
         self.play(ShowCreation(c))
         self.play(ShowCreation(rect))
         self.wait()
+
+class CoolImageAnim(Scene):
+
+    def construct(self):
+        img = ImageMobject(ASSESTS_PATH + "vintage.jpg")
+        width = img.get_width()
+        height = img.get_height()
+        parts = 64
+        w4 = width/parts
+        h4 = height/parts
+        boxes = VGroup(*[
+            Rectangle(
+                width=w4,
+                height=h4,
+                fill_opacity=1,
+                fill_color=BLACK,
+                stroke_width=0
+            )
+            for i in range(parts * parts)
+        ])
+        boxes.arrange_in_grid(n_rows=parts,n_cols=parts, buff=0)
+        self.add(img)
+        self.add(boxes)
+        boxes.move_to(img)
+        bb = [i for i in boxes]
+        shuffle(bb)
+        animations = []
+        for i in bb:
+            animations.append(FadeOut(i))
+        self.play(
+            LaggedStart(*animations),
+            run_time=3
+        )
+        self.wait()
+
+class ThanosAnim(Scene):
+
+    def construct(self):
+        img = ImageMobject(ASSESTS_PATH + "normal_keys/a.png")
+        width = img.get_width()
+        height = img.get_height()
+        parts = 24
+        w4 = width/parts
+        h4 = height/parts
+        boxes = VGroup(*[
+            Rectangle(
+                width=w4,
+                height=h4,
+                fill_opacity=1,
+                fill_color=BLACK,
+                stroke_width=0
+            )
+            for i in range(parts * parts)
+        ])
+        boxes.arrange_in_grid(n_rows=parts,n_cols=parts, buff=0)
+        self.add(img)
+        #self.add(boxes)
+        boxes.move_to(img)
+        animations = []
+        s = 0
+        for i in range(parts):
+            b = boxes[s:s+parts]
+            b_odd = [b[j] for j in range(len(b)) if j%2 != 0]
+            b_even = [b[j] for j in range(len(b)) if j%2 == 0]
+            shuffle(b_odd)
+            shuffle(b_even)
+            an = LaggedStart(
+                LaggedStart(*[FadeIn(j) for j in b_odd]),
+                LaggedStart(*[FadeIn(j) for j in b_even]),
+                run_time=.5
+            )
+            animations.append(
+                an
+            )
+            s += parts
+        self.play(
+            LaggedStart(*animations, lag_ratio=1),
+            run_time=1
+        )
+        self.wait()
+
+
+def get_fading_boxes(img, color=BLACK, parts=16):
+    width = img.get_width()
+    height = img.get_height()
+    w4 = width/parts
+    h4 = height/parts
+    boxes = VGroup(*[
+        Rectangle(
+            width=1.4 * w4,
+            height=1.4 * h4,
+            fill_opacity=1,
+            fill_color=color,
+            stroke_width=w4/4,
+            color=BLACK
+        )
+        for i in range(parts * parts)
+    ])
+    boxes.arrange_in_grid(n_rows=parts,n_cols=parts, buff=-0.008)
+        #self.add(boxes)
+    boxes.move_to(img)
+    animations_in = []
+    animations_out = []
+    s = 0
+    for i in range(parts):
+        b = boxes[s:s+parts]
+        b_odd = [b[j] for j in range(len(b)) if j%2 != 0]
+        b_even = [b[j] for j in range(len(b)) if j%2 == 0]
+        shuffle(b_odd)
+        shuffle(b_even)
+        an_in = LaggedStart(
+            LaggedStart(*[FadeIn(j) for j in b_odd]),
+            LaggedStart(*[FadeIn(j) for j in b_even]),
+            run_time=.5
+        )
+        animations_in.append(
+            an_in
+        )
+        an_out = LaggedStart(
+            LaggedStart(*[FadeOut(j) for j in b_odd]),
+            LaggedStart(*[FadeOut(j) for j in b_even]),
+            run_time=.5
+        )
+        animations_out.append(
+            an_out
+        )
+
+        s += parts
+    shuffle(animations_in)
+    shuffle(animations_out)
+    return LaggedStart(*animations_in, lag_ratio=.7), LaggedStart(*animations_out, lag_ratio=.7)
+
+def get_fading_boxes_random(img, color=BLACK, parts=16):
+    width = img.get_width()
+    height = img.get_height()
+    w4 = width/parts
+    h4 = height/parts
+    boxes = VGroup(*[
+        Rectangle(
+            width=1.4 * w4,
+            height=1.4 * h4,
+            fill_opacity=1,
+            fill_color=color,
+            stroke_width=w4/4,
+            color=BLACK
+        )
+        for i in range(parts * parts)
+    ])
+    boxes.arrange_in_grid(n_rows=parts,n_cols=parts, buff=-0.008)
+    boxes.move_to(img)
+    boxes_list = list(boxes)
+    shuffle(boxes_list)
+    animations_in = []
+    animations_out = []
+
+    for i in boxes_list:
+        an_in = FadeIn(i)
+        animations_in.append(an_in)
+        an_out = FadeOut(i)
+        animations_out.append(an_out)
+
+#    shuffle(animations_in)
+#    shuffle(animations_out)
+    return LaggedStart(*animations_in, lag_ratio=.3), LaggedStart(*animations_out, lag_ratio=.3)
+
